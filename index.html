@@ -326,7 +326,7 @@ function jget(k,def){ try{ const v=LS.get(k); return v==null?def:JSON.parse(v);}
 function jset(k,v){ try{ LS.set(k,JSON.stringify(v)); }catch(e){} }
 
 /* ===== SUPABASE (optional) ===== */
-const SUPA_URL="https://PEGA_AQUI_TU_REF.supabase.co", SUPA_KEY="PEGA_AQUI_LA_KEY";
+const SUPA_URL="https://sdlhogwrrbwofimipnfa.supabase.co", SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkbGhvZ3dycmJ3b2ZpbWlwbmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NzMxODQsImV4cCI6MjA5NzA0OTE4NH0._3noL_0vdPDcWsp5GXVhd1nkJelqnBZBF5lVUdlvdXg";
 let sb=null;
 try{ if(window.supabase && SUPA_URL && SUPA_KEY && !SUPA_URL.startsWith("https://PEGA") && !SUPA_KEY.startsWith("PEGA"))
   sb=window.supabase.createClient(SUPA_URL,SUPA_KEY); }catch(e){}
