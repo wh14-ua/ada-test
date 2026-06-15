@@ -299,7 +299,7 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
 <div class="modal-bg" id="nameModal">
   <div class="modal" style="max-width:420px">
     <h2 style="font-family:Fraunces;margin:0 0 6px">¿Cómo te llamas?</h2>
-    <p class="muted" style="margin:0 0 12px">Solo para guardar tus resultados y sincronizar entre dispositivos. Sin contraseña.</p>
+    <p class="muted" style="margin:0 0 12px">Pon tu nombre para guardar tu progreso en la nube. Usa <b>el mismo nombre</b> en el móvil y el PC y se sincroniza solo. Sin contraseña.</p>
     <input type="text" id="nameInput" placeholder="Tu nombre" style="font-family:inherit;font-size:16px;padding:12px;border:1px solid var(--line);border-radius:11px;width:100%;background:#fff">
     <div class="row" style="margin-top:14px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeName(false)">Ahora no</button>
@@ -347,10 +347,11 @@ let pendingName=null;
 function closeName(ok){
   const v=document.getElementById('nameInput').value.trim();
   document.getElementById('nameModal').classList.remove('show');
-  if(ok && v){ player=v; jset('ada_player',v); ensureSupaPlayer(); }
+  if(ok && v){ player=v; jset('ada_player',v); ensureSupaPlayer(); pullProgress(); }
   if(pendingName){ pendingName(player); pendingName=null; }
-  renderSaveChip();
+  renderSaveChip(); renderHome();
 }
+function promptNameStartup(){ if(player) return; document.getElementById('nameInput').value=''; document.getElementById('nameModal').classList.add('show'); document.getElementById('nameInput').focus(); }
 async function ensureSupaPlayer(){
   if(!ONLINE()||!player) return;
   const {error}=await sb.from('ada_players').upsert({name:player,last_seen:new Date().toISOString()});
@@ -377,6 +378,8 @@ async function pushProgress(){
     config:{seen:prog.seen}, updated_at:new Date().toISOString() });
   if(error) console.warn('push prog',error.message);
 }
+let _pushT=null;
+function debouncedPush(){ clearTimeout(_pushT); _pushT=setTimeout(()=>pushProgress(),600); }
 
 /* ===== HELPERS ===== */
 function topicCount(t){ return QUESTIONS.filter(q=>q.t===t).length; }
@@ -418,8 +421,10 @@ function renderHome(){
 }
 function renderSaveChip(){
   const c=document.getElementById('saveChip');
+  c.style.cursor='pointer';
+  c.onclick=()=>{ document.getElementById('nameInput').value=player||''; document.getElementById('nameModal').classList.add('show'); document.getElementById('nameInput').focus(); };
   if(ONLINE() && player){ c.className='savechip on'; c.textContent='☁ '+player; }
-  else if(ONLINE()){ c.className='savechip on'; c.textContent='☁ nube'; }
+  else if(ONLINE()){ c.className='savechip off'; c.textContent='👤 pon tu nombre'; }
   else { c.className='savechip off'; c.textContent='guardado local'; }
 }
 function renderTopicChips(){
@@ -536,7 +541,6 @@ function renderDots(){
   }).join('');
 }
 function choose(i){
-  const wasNull=S.answers[S.cur]===null;
   if(S.mode==='estudio' && S.answers[S.cur]!==null) return; // lock after answer in study
   S.answers[S.cur]=i;
   const q=BYID[S.qs[S.cur]];
@@ -544,8 +548,9 @@ function choose(i){
   if(S.mode==='estudio'){
     if(i===q.ans){ prog.mastered[q.id]=1; if(prog.fails[q.id]) delete prog.fails[q.id]; }
     else { prog.fails[q.id]=(prog.fails[q.id]||0)+1; }
-    saveProgLocal();
   }
+  saveProgLocal();
+  debouncedPush();           // <- guarda en la nube en cada respuesta
   persistSession(); renderQ();
 }
 function go(d){ const n=S.cur+d; if(n<0||n>=S.qs.length)return; S.cur=n; persistSession(); renderQ(); }
@@ -706,7 +711,14 @@ function goHome(){ renderHome(); show('home'); checkResume(); }
 /* ===== INIT ===== */
 renderTopicChips(); renderCountOpts(); renderHome(); updatePool(); checkResume();
 renderSaveChip();
-if(ONLINE()){ ensureSupaPlayer(); pullProgress(); }
+if(ONLINE()){
+  ensureSupaPlayer();
+  if(player) pullProgress();
+  else setTimeout(promptNameStartup,300);   // pide nombre al abrir -> identidad para sincronizar
+}
+// al volver a la pestaña/dispositivo, baja lo último de la nube
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && ONLINE() && player) pullProgress(); });
+window.addEventListener('focus',()=>{ if(ONLINE() && player) pullProgress(); });
 </script>
 </body>
 </html>
