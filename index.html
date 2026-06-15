@@ -1,4 +1,4 @@
-  <!doctype html>
+<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -326,13 +326,27 @@ const TXT_FILE = "adaPreguntas.txt";   // <- pon tu .txt con ESTE nombre, junto 
 let QUESTIONS=[], TOPICS=[], BYID={}, TOTAL=0;
 function parseTxt(text){
   const lines=text.split(/\r?\n/).map(l=>l.replace(/\s+$/,'')); const N=lines.length;
-  const out=[]; let buf=[]; let i=0; const bare=/^\s*[123]\s*$/;
-  while(i<N){ const l=lines[i];
-    if(bare.test(l)){ let j=i+1; const opts=[];
-      while(j<N && lines[j].trim().startsWith('- ')){ opts.push(lines[j].trim().slice(2).trim()); j++; }
-      if(opts.length===3){ let q=buf.join('\n').trim().replace(/\s*(CONFIRMADA|DUDA|REVISAR)\s*$/,'').trim();
-        if(q) out.push({q, ans:parseInt(l.trim(),10)-1, opts}); buf=[]; i=j; continue; } }
-    buf.push(l); i++; }
+  const out=[]; let buf=[]; let i=0; const bare=/^\s*[1-5]\s*$/;
+  const cleanQ=b=>b.join('\n').trim().replace(/\s*(CONFIRMADA|DUDA|REVISAR)\s*$/,'').trim();
+  while(i<N){
+    const l=lines[i];
+    if(bare.test(l)){
+      const ans=parseInt(l.trim(),10);
+      // Formato A: líneas consecutivas que empiezan por "- "
+      let j=i+1; const dash=[];
+      while(j<N && lines[j].trim().startsWith('- ')){ dash.push(lines[j].trim().slice(2).trim()); j++; }
+      if(dash.length>=2 && dash.length<=6 && ans<=dash.length){
+        const q=cleanQ(buf); if(q) out.push({q,ans:ans-1,opts:dash}); buf=[]; i=j; continue;
+      }
+      // Formato B: líneas consecutivas no vacías y sin guion, hasta una línea en blanco
+      let k=i+1; const plain=[];
+      while(k<N && lines[k].trim()!=='' && !lines[k].trim().startsWith('- ')){ plain.push(lines[k].trim()); k++; }
+      if(plain.length>=2 && plain.length<=6 && ans<=plain.length){
+        const q=cleanQ(buf); if(q) out.push({q,ans:ans-1,opts:plain}); buf=[]; i=k; continue;
+      }
+    }
+    buf.push(l); i++;
+  }
   return out;
 }
 function topicOf(t){ const s=t.toLowerCase(); const has=a=>a.some(k=>s.includes(k));
@@ -568,11 +582,11 @@ function renderQ(){
     let cls='opt';
     if(reveal){ if(i===q.ans)cls+=' correct'; else if(i===sel)cls+=' wrong'; }
     else if(i===sel) cls+=' sel';
-    const mk='ABC'[i];
+    const mk='ABCDE'[i];
     return `<div class="${cls}" onclick="choose(${i})"><div class="mk">${mk}</div><div class="otext">${rich(o)}</div></div>`;
   }).join('');
   const fb=document.getElementById('qFeedback'); fb.innerHTML='';
-  if(reveal){ const ok=sel===q.ans; fb.innerHTML=`<div class="feedback ${ok?'good':'miss'}">${ok?'✓ ¡Correcto!':'✗ Incorrecto. La respuesta correcta es '+'ABC'[q.ans]+'.'} <span style="font-weight:400">(según tu material)</span></div>`; }
+  if(reveal){ const ok=sel===q.ans; fb.innerHTML=`<div class="feedback ${ok?'good':'miss'}">${ok?'✓ ¡Correcto!':'✗ Incorrecto. La respuesta correcta es '+'ABCDE'[q.ans]+'.'} <span style="font-weight:400">(según tu material)</span></div>`; }
   // nav
   document.getElementById('prevBtn').disabled=S.cur===0;
   const last=S.cur===S.qs.length-1;
@@ -677,7 +691,7 @@ function renderReview(){
   const RL=document.getElementById('reviewList'); RL.innerHTML=list.map(d=>{
     const opts=d.opts.map((o,i)=>{ let c='ro n'; if(i===d.c)c='ro c'; else if(i===d.tu&&i!==d.c)c='ro w';
       const tag=i===d.c?' ✓ correcta':(i===d.tu&&i!==d.c?' ✗ tu respuesta':'');
-      return `<div class="${c}"><b>${'ABC'[i]}</b> ${rich(o)}<span class="muted">${tag}</span></div>`; }).join('');
+      return `<div class="${c}"><b>${'ABCDE'[i]}</b> ${rich(o)}<span class="muted">${tag}</span></div>`; }).join('');
     const blank=d.tu===null?'<div class="ro w"><i>Dejada en blanco</i></div>':'';
     return `<div class="rev"><div class="rq">${d.n}. ${rich(d.q)}</div>${opts}${blank}</div>`;
   }).join(''); mj(RL);
@@ -744,7 +758,7 @@ function toggleAttempt(idx){
   const a=window.__hist[idx]; const qs=a.questions||[];
   el.innerHTML = qs.length? qs.map(d=>{
     const opts=d.opts.map((o,i)=>{ let c='ro n'; if(i===d.c)c='ro c'; else if(i===d.tu&&i!==d.c)c='ro w';
-      const tag=i===d.c?' ✓':(i===d.tu&&i!==d.c?' ✗ tú':''); return `<div class="${c}"><b>${'ABC'[i]}</b> ${rich(o)}<span class="muted">${tag}</span></div>`; }).join('');
+      const tag=i===d.c?' ✓':(i===d.tu&&i!==d.c?' ✗ tú':''); return `<div class="${c}"><b>${'ABCDE'[i]}</b> ${rich(o)}<span class="muted">${tag}</span></div>`; }).join('');
     const blank=d.tu===null||d.tu===undefined?'<div class="ro w"><i>en blanco</i></div>':'';
     return `<div class="rev"><div class="rq">${d.n}. ${rich(d.q)}</div>${opts}${blank}</div>`;
   }).join('') : '<p class="muted">Sin detalle guardado.</p>';
