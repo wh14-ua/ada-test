@@ -1,4 +1,4 @@
-<!doctype html>
+  <!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -8,6 +8,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['$$','$$']],processEscapes:true},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code'],ignoreHtmlClass:'tex2jax_ignore'},startup:{typeset:false},chtml:{scale:1.0}};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 <style>
 :root{
   --paper:#FBF5EA; --paper2:#F4EBDA; --ink:#211C16; --ink2:#4A4034;
@@ -420,16 +424,26 @@ function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.
 function pct(a,b){ return b? Math.round(a*100/b):0; }
 function shuffleArr(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
-/* ===== RICH TEXT (code + math) ===== */
+/* ===== RICH TEXT (código + LaTeX vía MathJax) ===== */
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function mfmt(p){ return '<span class="math">'+p.replace(/\^\{([^}]*)\}/g,'<sup>$1</sup>').replace(/_\{([^}]*)\}/g,'<sub>$1</sub>').replace(/\^(\w)/g,'<sup>$1</sup>').replace(/_(\w)/g,'<sub>$1</sub>')+'</span>'; }
-function mathy(t){ return t.replace(/\$\$([^$]*)\$\$/g,(m,p)=>mfmt(p)).replace(/\$([^$]+)\$/g,(m,p)=>mfmt(p)); }
-function inlineFmt(t){ const segs=t.split('`'); let s='';
-  for(let i=0;i<segs.length;i++){ if(i%2===1){ s+='<code>'+esc(segs[i].replace(/\\n/g,' ').replace(/\\t/g,' '))+'</code>'; } else { s+=mathy(esc(segs[i])); } }
-  return s.replace(/\n/g,'<br>'); }
-function rich(raw){ const parts=raw.split('```'); let out='';
-  for(let i=0;i<parts.length;i++){ if(i%2===1){ out+='<pre class="code">'+esc(parts[i].replace(/\\n/g,'\n').replace(/\\t/g,'  ').trim())+'</pre>'; } else { out+=inlineFmt(parts[i]); } }
-  return out; }
+function fixMathSpan(m){ if(/\\\\[A-Za-z]/.test(m)) m=m.replace(/\\\\/g,'\\'); return m; }  // colapsa LaTeX doble-escapado
+function processText(t){
+  const spans=[]; const SENT=i=>'\u0002'+i+'\u0002';
+  t=t.replace(/`([^`]*)`/g,(m,c)=>{ spans.push('<code class="tex2jax_ignore">'+esc(c)+'</code>'); return SENT(spans.length-1); });
+  t=t.replace(/\\\\([()\[\]])/g,'\\$1');                          // normaliza delimitadores \( \) \[ \]
+  t=t.replace(/\$\$[\s\S]*?\$\$|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]/g,m=>{ spans.push(esc(fixMathSpan(m))); return SENT(spans.length-1); });
+  t=t.replace(/\\r/g,'').replace(/\\n/g,'\n').replace(/\\t/g,' '); // escapes de espacio (solo fuera de fórmulas)
+  return t.split(/\u0002(\d+)\u0002/).map((p,idx)=> idx%2===1 ? spans[+p] : esc(p).replace(/\n{2,}/g,'\n').replace(/^\n+|\n+$/g,'').replace(/\n/g,'<br>')).join('');
+}
+function rich(raw){
+  const parts=raw.split('```'); let out='';
+  for(let i=0;i<parts.length;i++){
+    if(i%2===1){ const code=parts[i].replace(/\\\\/g,'\u0001').replace(/\\n/g,'\n').replace(/\\t/g,'  ').replace(/\u0001/g,'\\'); out+='<pre class="code tex2jax_ignore">'+esc(code.trim())+'</pre>'; }
+    else out+=processText(parts[i]);
+  }
+  return out;
+}
+function mj(el){ if(el && window.MathJax && MathJax.startup && MathJax.typesetPromise) MathJax.startup.promise.then(()=>MathJax.typesetPromise([el]).catch(()=>{})); }
 
 /* ===== HOME ===== */
 const COUNT_PRESETS=[5,10,20,50,'todas','custom'];
@@ -564,7 +578,7 @@ function renderQ(){
   const last=S.cur===S.qs.length-1;
   document.getElementById('nextBtn').classList.toggle('hidden',last);
   document.getElementById('finishBtn').classList.toggle('hidden',!last);
-  renderDots(); updateHud();
+  renderDots(); updateHud(); mj(document.getElementById('test'));
 }
 function renderDots(){
   document.getElementById('dots').innerHTML=S.qs.map((id,i)=>{
@@ -660,13 +674,13 @@ function renderReview(){
   const r=lastResult;
   let list=r.detail; if(revFilter==='wrong') list=list.filter(d=>!d.ok);
   if(!list.length){ document.getElementById('reviewList').innerHTML='<p class="muted">Sin elementos. ¡Todo correcto!</p>'; return; }
-  document.getElementById('reviewList').innerHTML=list.map(d=>{
+  const RL=document.getElementById('reviewList'); RL.innerHTML=list.map(d=>{
     const opts=d.opts.map((o,i)=>{ let c='ro n'; if(i===d.c)c='ro c'; else if(i===d.tu&&i!==d.c)c='ro w';
       const tag=i===d.c?' ✓ correcta':(i===d.tu&&i!==d.c?' ✗ tu respuesta':'');
       return `<div class="${c}"><b>${'ABC'[i]}</b> ${rich(o)}<span class="muted">${tag}</span></div>`; }).join('');
     const blank=d.tu===null?'<div class="ro w"><i>Dejada en blanco</i></div>':'';
     return `<div class="rev"><div class="rq">${d.n}. ${rich(d.q)}</div>${opts}${blank}</div>`;
-  }).join('');
+  }).join(''); mj(RL);
 }
 
 /* ===== SAVE ATTEMPT ===== */
@@ -734,7 +748,7 @@ function toggleAttempt(idx){
     const blank=d.tu===null||d.tu===undefined?'<div class="ro w"><i>en blanco</i></div>':'';
     return `<div class="rev"><div class="rq">${d.n}. ${rich(d.q)}</div>${opts}${blank}</div>`;
   }).join('') : '<p class="muted">Sin detalle guardado.</p>';
-  el.classList.remove('hidden');
+  el.classList.remove('hidden'); mj(el);
 }
 async function loadLeaderboard(){
   const body=document.getElementById('lbBody');
