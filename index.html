@@ -359,10 +359,21 @@ function topicOf(t){ const s=t.toLowerCase(); const has=a=>a.some(k=>s.includes(
   if(has(['complejidad','coste','o(','θ','ω','sumatorio','recurrencia','asintot','asíntot','notacion','notación','log','teorema maestro','peor caso','mejor caso'])) return 'Complejidad';
   return 'General';
 }
-function buildQuestions(text){ const parsed=parseTxt(text); const seen={}; const out=[]; let k=0;
+function buildQuestions(text){
+  const parsed=parseTxt(text); const seen={}; const uniq=[];
+  const norm=s=>s.replace(/```[\s\S]*?```/g,' ').replace(/\s+/g,' ').toLowerCase().trim();  // texto sin código para comparar
   for(const q of parsed){ const key=q.q.replace(/\s+/g,' ').toLowerCase()+'||'+q.opts.map(o=>o.toLowerCase()).join('|');
-    if(seen[key])continue; seen[key]=1; k++;
-    out.push({id:'q'+k, q:q.q, opts:q.opts, ans:q.ans, t:topicOf(q.q)}); }
+    if(seen[key])continue; seen[key]=1; uniq.push(q); }
+  // elimina duplicados truncados: misma lista de opciones y el texto es subcadena de otra versión más larga
+  const optKey=q=>q.opts.map(o=>o.replace(/\s+/g,' ').toLowerCase().trim()).join('|');
+  const groups={}; uniq.forEach((q,i)=>{ (groups[optKey(q)]||(groups[optKey(q)]=[])).push(i); });
+  const drop=new Set();
+  for(const g in groups){ const ix=groups[g]; if(ix.length<2)continue;
+    for(const a of ix) for(const b of ix){ if(a===b||drop.has(a)||drop.has(b))continue;
+      const ta=norm(uniq[a].q), tb=norm(uniq[b].q);
+      if(tb && ta.length>tb.length && ta.includes(tb)) drop.add(b); } }  // b es la versión recortada -> fuera
+  const out=[]; let k=0;
+  uniq.forEach((q,i)=>{ if(drop.has(i))return; k++; out.push({id:'q'+k,q:q.q,opts:q.opts,ans:q.ans,t:topicOf(q.q)}); });
   return out;
 }
 
@@ -530,7 +541,7 @@ document.getElementById('shuffle').addEventListener('change',e=>cfg.shuffle=e.ta
 /* ===== SESSION ===== */
 let S=null; // {qs:[ids], answers:[idx|null], flags:[], mode, cur, topics, failsOnly}
 function buildSession(ids, exam, topicsLabel, failsOnly){
-  S={ qs:ids, answers:ids.map(()=>null), flags:ids.map(()=>false), mode:exam?'examen':'estudio', cur:0, topics:topicsLabel, failsOnly:!!failsOnly, ts:Date.now() };
+  S={ qs:ids, answers:ids.map(()=>null), flags:ids.map(()=>false), mode:exam?'examen':'estudio', cur:0, topics:topicsLabel, failsOnly:!!failsOnly, ts:Date.now(), bank:TOTAL };
   persistSession();
 }
 function persistSession(){ if(S) jset('ada_session',S); }
@@ -777,13 +788,13 @@ async function loadLeaderboard(){
 /* ===== RESUME ===== */
 function checkResume(){
   const s=jget('ada_session',null);
-  if(s && s.qs && s.qs.length && s.qs.every(id=>BYID[id])){
+  if(s && s.qs && s.qs.length && s.bank===TOTAL && s.qs.every(id=>BYID[id])){
     const answered=s.answers.filter(x=>x!==null).length;
     document.getElementById('resumeInfo').textContent=`${s.topics} · ${answered}/${s.qs.length} respondidas · ${s.mode}`;
     document.getElementById('resumeBanner').classList.remove('hidden');
   } else if(s){ clearSession(); }
 }
-function resumeSession(){ S=jget('ada_session',null); if(S && S.qs.every(id=>BYID[id])){ document.getElementById('resumeBanner').classList.add('hidden'); enterTest(); } else { clearSession(); document.getElementById('resumeBanner').classList.add('hidden'); toast('La sesión guardada no coincide con las preguntas actuales.'); } }
+function resumeSession(){ S=jget('ada_session',null); if(S && S.bank===TOTAL && S.qs.every(id=>BYID[id])){ document.getElementById('resumeBanner').classList.add('hidden'); enterTest(); } else { clearSession(); document.getElementById('resumeBanner').classList.add('hidden'); toast('La sesión guardada era de una versión anterior; empieza una nueva.'); } }
 function discardSession(){ clearSession(); document.getElementById('resumeBanner').classList.add('hidden'); }
 
 /* ===== NAV ===== */
