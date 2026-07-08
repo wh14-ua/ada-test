@@ -472,8 +472,35 @@ function debouncedPush(){ clearTimeout(_pushT); _pushT=setTimeout(()=>pushProgre
 
 /* ===== NOTAS POR PREGUNTA (compartidas) ===== */
 let NOTES = jget('ada_notes_cache', {}); // qkey -> {note, author, updated_at}
-let _noteDraft = null; // borrador sin guardar: {qkey, text} para no perderlo en redibujados
-function noteDraftInput(el){ if(S) _noteDraft={qkey:BYID[S.qs[S.cur]].key, text:el.value}; }
+let _noteDraft = null;   // borrador sin guardar (por si algo redibuja)
+let _noteSaveT = null;   // temporizador de autoguardado
+function setNoteStatus(m){ const st=document.getElementById('qNoteStatus'); if(st) st.textContent=m; }
+function noteDraftInput(el){
+  if(!S) return;
+  const k=BYID[S.qs[S.cur]].key;
+  _noteDraft={qkey:k, text:el.value};
+  setNoteStatus('escribiendo…');
+  clearTimeout(_noteSaveT);
+  _noteSaveT=setTimeout(()=>autosaveNote(k),1200);   // autoguarda 1,2 s tras dejar de teclear
+}
+async function autosaveNote(qkey){
+  const box=document.getElementById('qNote');
+  if(!box || box.dataset.editing!==qkey) return;      // ya no editas esta pregunta
+  const ta=document.getElementById('qNoteInput'); if(!ta) return;
+  setNoteStatus('guardando…');
+  const r=await saveNote(qkey, ta.value);
+  if(r&&r.error) setNoteStatus('⚠ guardado aquí (sin nube)');
+  else if(r&&r.local) setNoteStatus('guardado en este equipo');
+  else setNoteStatus('guardado ✓');
+}
+function flushNoteIfEditing(){
+  const box=document.getElementById('qNote'); if(!box) return;
+  const ek=box.dataset.editing; if(!ek) return;
+  if(!_noteDraft || _noteDraft.qkey!==ek) return;     // no tecleaste nada
+  const ta=document.getElementById('qNoteInput'); if(!ta) return;
+  clearTimeout(_noteSaveT);
+  saveNote(ek, ta.value);                             // local ya queda hecho; nube en segundo plano
+}
 async function loadNotes(){
   if(!ONLINE()) return;
   const {data,error}=await sb.from('ada_notes').select('*');
@@ -485,14 +512,29 @@ async function loadNotes(){
     if(!nb || !nb.dataset.editing) renderNote(); // no pisar el cuadro si estás escribiendo
   }
 }
+function withTimeout(p,ms){ return Promise.race([ Promise.resolve(p), new Promise((_,rej)=>setTimeout(()=>rej(new Error('tiempo agotado')),ms)) ]); }
+async function cloudWriteNote(qkey,clean,updated_at){
+  for(let i=0;i<2;i++){
+    try{
+      const op = clean
+        ? sb.from('ada_notes').upsert({qkey,note:clean,author:player||null,updated_at})
+        : sb.from('ada_notes').delete().eq('qkey',qkey);
+      const {error}=await withTimeout(op,8000);
+      if(!error) return {ok:true};
+      if(i) return {ok:false,msg:error.message};
+    }catch(e){ if(i) return {ok:false,msg:(e&&e.message)||'sin conexión'}; }
+    await new Promise(r=>setTimeout(r,500)); // pequeño backoff antes de reintentar
+  }
+  return {ok:false,msg:'sin conexión'};
+}
 async function saveNote(qkey,text){
   const clean=text.trim();
   const rec={note:clean,author:player||null,updated_at:new Date().toISOString()};
   if(clean) NOTES[qkey]=rec; else delete NOTES[qkey];
-  jset('ada_notes_cache',NOTES);
+  jset('ada_notes_cache',NOTES);                 // local PRIMERO: nunca se pierde
   if(!ONLINE()) return {local:true};
-  if(clean){ const {error}=await sb.from('ada_notes').upsert({qkey,note:clean,author:player||null,updated_at:rec.updated_at}); return {error}; }
-  const {error}=await sb.from('ada_notes').delete().eq('qkey',qkey); return {error};
+  const r=await cloudWriteNote(qkey,clean,rec.updated_at);
+  return r.ok ? {ok:true} : {error:{message:r.msg}};
 }
 
 /* ===== HELPERS ===== */
@@ -674,6 +716,7 @@ function renderQ(){
   document.getElementById('nextBtn').classList.toggle('hidden',last);
   document.getElementById('finishBtn').classList.toggle('hidden',!last);
   renderDots(); updateHud();
+  flushNoteIfEditing();
   document.getElementById('qNote').dataset.editing=''; renderNote();
   mj(document.getElementById('test'));
 }
@@ -688,9 +731,9 @@ function renderNote(){
     box.innerHTML=`<div class="qnote-edit">
       <textarea id="qNoteInput" class="qnote-ta" oninput="noteDraftInput(this)" placeholder="Escribe una nota para esta pregunta. Se comparte con todos. Admite \`código\` y fórmulas \\(x^2\\).">${esc(cur)}</textarea>
       <div class="row" style="justify-content:space-between;align-items:center;margin-top:8px">
-        <span id="qNoteStatus" class="muted"></span>
+        <span id="qNoteStatus" class="muted">se guarda solo</span>
         <span class="row" style="gap:8px">
-          <button class="btn btn-ghost btn-sm" onclick="cancelNote()">Cancelar</button>
+          <button class="btn btn-ghost btn-sm" onclick="cancelNote()">Cerrar</button>
           <button class="btn btn-primary btn-sm" onclick="commitNote()">Guardar</button>
         </span>
       </div></div>`;
@@ -707,16 +750,16 @@ function renderNote(){
     box.innerHTML=`<button class="qnote-add" onclick="editNote()">📝 Añadir nota a esta pregunta</button>`;
   }
 }
-function editNote(){ _noteDraft=null; const box=document.getElementById('qNote'); box.dataset.editing=BYID[S.qs[S.cur]].key; renderNote(); }
-function cancelNote(){ _noteDraft=null; const box=document.getElementById('qNote'); box.dataset.editing=''; renderNote(); }
+function editNote(){ _noteDraft=null; clearTimeout(_noteSaveT); const box=document.getElementById('qNote'); box.dataset.editing=BYID[S.qs[S.cur]].key; renderNote(); }
+function cancelNote(){ flushNoteIfEditing(); _noteDraft=null; clearTimeout(_noteSaveT); const box=document.getElementById('qNote'); box.dataset.editing=''; renderNote(); }
 async function commitNote(){
   const q=BYID[S.qs[S.cur]]; const val=document.getElementById('qNoteInput').value;
-  const st=document.getElementById('qNoteStatus'); if(st) st.textContent='Guardando…';
+  clearTimeout(_noteSaveT); setNoteStatus('guardando…');
   const r=await saveNote(q.key,val);
   _noteDraft=null; document.getElementById('qNote').dataset.editing=''; renderNote();
-  if(r&&r.error) toast('Nota guardada aquí; error nube: '+r.error.message);
-  else if(r&&r.local) toast('Nota guardada en este dispositivo');
-  else toast('Nota guardada ☁');
+  if(r&&r.error) toast('Guardado aquí; la nube falló: '+r.error.message);
+  else if(r&&r.local) toast('Guardado en este equipo');
+  else toast('Nota guardada ✓');
 }
 async function deleteNote(){
   const q=BYID[S.qs[S.cur]];
@@ -942,8 +985,8 @@ async function boot(){
     renderTopicChips(); renderCountOpts(); renderHome(); updatePool(); checkResume(); renderSaveChip();
     loadNotes();
     if(ONLINE()){ ensureSupaPlayer(); if(player) pullProgress(); /* visitantes: no forzamos modal de nombre; el chip "👤 pon tu nombre" ya invita */ }
-    document.addEventListener('visibilitychange',()=>{ if(!document.hidden && ONLINE()){ loadNotes(); if(player) pullProgress(); } });
-    window.addEventListener('focus',()=>{ if(ONLINE()){ loadNotes(); if(player) pullProgress(); } });
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden && ONLINE() && player) pullProgress(); });
+    window.addEventListener('focus',()=>{ if(ONLINE() && player) pullProgress(); });
   }catch(e){
     document.getElementById('home').innerHTML='<div class="card"><h2>No pude cargar las preguntas</h2><p class="muted">Esperaba el archivo <b>'+TXT_FILE+'</b> en la misma carpeta que este HTML. Detalle: '+e.message+'</p><p class="muted">Sube el .txt con ese nombre exacto junto al HTML y ábrelo por http(s) (GitHub Pages vale). Desde <i>file://</i> algunos navegadores bloquean leer el archivo.</p></div>';
   }
