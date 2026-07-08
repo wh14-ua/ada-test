@@ -231,7 +231,7 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
 
       <div class="row spread" style="margin-top:18px">
         <label class="switch"><input type="checkbox" id="modeExam"><span class="track"></span><span id="modeLbl">Modo Estudio</span></label>
-        <label class="switch"><input type="checkbox" id="shuffle" checked><span class="track"></span>Barajar</label>
+        <label class="switch"><input type="checkbox" id="shuffle"><span class="track"></span>Barajar</label>
       </div>
       <p class="muted" id="modeDesc" style="margin:10px 0 0">Estudio: corrige al instante y muestra la respuesta correcta.</p>
 
@@ -584,7 +584,7 @@ function richNote(raw){
 
 /* ===== HOME ===== */
 const COUNT_PRESETS=[5,10,20,50,'todas','custom'];
-let cfg={ topics:new Set(TOPICS), count:20, exam:false, shuffle:true };
+let cfg={ topics:new Set(TOPICS), count:20, exam:false, shuffle:false };
 function renderHome(){
   // stats
   const nm=Object.keys(prog.mastered).length, ns=Object.keys(prog.seen).length, nf=Object.keys(prog.fails).filter(k=>prog.fails[k]>0).length;
@@ -659,11 +659,12 @@ function buildSession(ids, exam, topicsLabel, failsOnly){
 function persistSession(){ if(S) jset('ada_session',S); }
 function clearSession(){ S=null; LS.del('ada_session'); }
 
+function syncShuffle(){ const c=document.getElementById('shuffle'); if(c) cfg.shuffle=!!c.checked; return cfg.shuffle; }
 function startTest(){
   const pool=poolQuestions();
   if(!pool.length){ toast('Elige al menos un tema'); return; }
   let arr=pool.slice();
-  if(cfg.shuffle) shuffleArr(arr);
+  if(syncShuffle()) shuffleArr(arr);
   let want = cfg.count==='todas'? arr.length : (cfg.count==='custom'? (parseInt(document.getElementById('customCount').value)||10) : cfg.count);
   want=Math.min(want,arr.length);
   arr=arr.slice(0,want);
@@ -674,7 +675,7 @@ function startTest(){
 function startFailsOnly(){
   const ids=Object.keys(prog.fails).filter(k=>prog.fails[k]>0 && BYID[k]);
   if(!ids.length){ toast('No tienes fallos pendientes 🎉'); return; }
-  shuffleArr(ids);
+  if(syncShuffle()) shuffleArr(ids);
   buildSession(ids, false, 'Mis fallos', true);
   enterTest();
 }
