@@ -191,7 +191,7 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
         <div id="topicBars"></div>
       </div>
       <div class="row" style="margin-top:14px">
-        <button class="btn btn-ghost" onclick="openHistory()">📊 Mis tests</button>
+        <button class="btn btn-ghost" onclick="openHistory()">📊 Ranking y mis tests</button>
         <button class="btn btn-ghost" id="failBtn" onclick="startFailsOnly()">🔁 Repasar mis fallos</button>
       </div>
     </div>
@@ -733,7 +733,8 @@ async function saveAttempt(){
 /* ===== HISTORY MODAL ===== */
 async function openHistory(){
   document.getElementById('histModal').classList.add('show');
-  histTab('hist');
+  // Si no hay nombre (visitante), abre en Ranking; si ya jugaste, en tu Historial
+  histTab(player ? 'hist' : 'lb');
 }
 function closeHistory(){ document.getElementById('histModal').classList.remove('show'); }
 function histTab(t){
