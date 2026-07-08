@@ -105,6 +105,24 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
 .feedback{font-size:14px;font-weight:600;padding:10px 12px;border-radius:11px;margin:6px 0 2px}
 .feedback.good{background:var(--ok-bg);color:var(--ok)}
 .feedback.miss{background:var(--bad-bg);color:var(--bad)}
+/* notas por pregunta (compartidas) */
+.qnote{margin:12px 0 2px}
+.qnote-add{appearance:none;border:1px dashed var(--line);background:#fff6;color:var(--ink2);border-radius:12px;padding:10px 14px;font:inherit;font-weight:600;font-size:14px;cursor:pointer;width:100%;text-align:left;transition:.12s}
+.qnote-add:hover{border-color:var(--teal);color:var(--teal);background:#fff}
+.qnote-view{background:#fdf6e3;border:1px solid #ecd9a8;border-left:4px solid var(--gold);border-radius:12px;padding:11px 14px}
+.qnote-h{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--ink2);margin-bottom:6px}
+.qnote-h b{color:var(--ink)}
+.qnote-body{font-size:14.5px;line-height:1.55}
+.qnote-body code{background:#00000010;padding:1px 5px;border-radius:5px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em}
+.qnote-body pre.code{margin:8px 0}
+.btn-link{background:none;border:0;color:var(--teal);font:inherit;font-weight:600;font-size:12px;cursor:pointer;padding:0;white-space:nowrap}
+.btn-link:hover{text-decoration:underline}
+.qnote-edit{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+.qnote-ta{width:100%;min-height:88px;font:inherit;font-size:14.5px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fffdf8;resize:vertical;line-height:1.5}
+.btn-sm{padding:8px 13px;font-size:13px}
+/* nota en la revisión de intentos (solo lectura) */
+.rev-note{background:#fdf6e3;border-left:3px solid var(--gold);border-radius:8px;padding:6px 10px;margin:6px 0 2px;font-size:13px;color:var(--ink2)}
+.rev-note b{color:var(--ink)}
 /* sticky nav */
 .navbar{position:sticky;bottom:0;z-index:8;background:linear-gradient(0deg,var(--paper) 72%,#fbf5ea00);padding:12px 0 max(12px,env(safe-area-inset-bottom));margin-top:8px;display:flex;gap:10px;align-items:center}
 .navbar .btn{flex:0 0 auto}
@@ -239,6 +257,7 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
       <div class="qtext" id="qText"></div>
       <div id="qOpts"></div>
       <div id="qFeedback"></div>
+      <div id="qNote" class="qnote"></div>
     </div>
     <div class="navbar">
       <button class="btn btn-ghost" id="prevBtn" onclick="go(-1)">←</button>
@@ -359,6 +378,15 @@ function topicOf(t){ const s=t.toLowerCase(); const has=a=>a.some(k=>s.includes(
   if(has(['complejidad','coste','o(','θ','ω','sumatorio','recurrencia','asintot','asíntot','notacion','notación','log','teorema maestro','peor caso','mejor caso'])) return 'Complejidad';
   return 'General';
 }
+/* ===== CLAVE ESTABLE POR PREGUNTA (para notas) ===== */
+function cyrb53(str,seed=0){ let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;
+  for(let i=0,ch;i<str.length;i++){ ch=str.charCodeAt(i);
+    h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507); h1^=Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507); h2^=Math.imul(h1^(h1>>>13),3266489909);
+  return (4294967296*(2097151&h2)+(h1>>>0)).toString(36); }
+function qkeyOf(q){ const s=(q.q.trim()+'||'+q.opts.map(o=>o.trim()).join('|')).replace(/\s+/g,' ').toLowerCase(); return 'k'+cyrb53(s); }
+
 function buildQuestions(text){
   const parsed=parseTxt(text); const seen={}; const uniq=[];
   const norm=s=>s.replace(/```[\s\S]*?```/g,' ').replace(/\s+/g,' ').toLowerCase().trim();  // texto sin código para comparar
@@ -373,7 +401,7 @@ function buildQuestions(text){
       const ta=norm(uniq[a].q), tb=norm(uniq[b].q);
       if(tb && ta.length>tb.length && ta.includes(tb)) drop.add(b); } }  // b es la versión recortada -> fuera
   const out=[]; let k=0;
-  uniq.forEach((q,i)=>{ if(drop.has(i))return; k++; out.push({id:'q'+k,q:q.q,opts:q.opts,ans:q.ans,t:topicOf(q.q)}); });
+  uniq.forEach((q,i)=>{ if(drop.has(i))return; k++; out.push({id:'q'+k,q:q.q,opts:q.opts,ans:q.ans,t:topicOf(q.q),key:qkeyOf(q)}); });
   return out;
 }
 
@@ -441,6 +469,26 @@ async function pushProgress(){
 }
 let _pushT=null;
 function debouncedPush(){ clearTimeout(_pushT); _pushT=setTimeout(()=>pushProgress(),600); }
+
+/* ===== NOTAS POR PREGUNTA (compartidas) ===== */
+let NOTES = jget('ada_notes_cache', {}); // qkey -> {note, author, updated_at}
+async function loadNotes(){
+  if(!ONLINE()) return;
+  const {data,error}=await sb.from('ada_notes').select('*');
+  if(error){ console.warn('notes load',error.message); return; }
+  const map={}; (data||[]).forEach(r=>{ map[r.qkey]={note:r.note,author:r.author,updated_at:r.updated_at}; });
+  NOTES=map; jset('ada_notes_cache',NOTES);
+  if(S && !document.getElementById('test').classList.contains('hidden')) renderNote();
+}
+async function saveNote(qkey,text){
+  const clean=text.trim();
+  const rec={note:clean,author:player||null,updated_at:new Date().toISOString()};
+  if(clean) NOTES[qkey]=rec; else delete NOTES[qkey];
+  jset('ada_notes_cache',NOTES);
+  if(!ONLINE()) return {local:true};
+  if(clean){ const {error}=await sb.from('ada_notes').upsert({qkey,note:clean,author:player||null,updated_at:rec.updated_at}); return {error}; }
+  const {error}=await sb.from('ada_notes').delete().eq('qkey',qkey); return {error};
+}
 
 /* ===== HELPERS ===== */
 function topicCount(t){ return QUESTIONS.filter(q=>q.t===t).length; }
@@ -603,7 +651,56 @@ function renderQ(){
   const last=S.cur===S.qs.length-1;
   document.getElementById('nextBtn').classList.toggle('hidden',last);
   document.getElementById('finishBtn').classList.toggle('hidden',!last);
-  renderDots(); updateHud(); mj(document.getElementById('test'));
+  renderDots(); updateHud();
+  document.getElementById('qNote').dataset.editing=''; renderNote();
+  mj(document.getElementById('test'));
+}
+
+/* ===== NOTA (UI en la pregunta) ===== */
+function renderNote(){
+  const box=document.getElementById('qNote'); if(!box || !S) return;
+  const q=BYID[S.qs[S.cur]]; if(!q){ box.innerHTML=''; return; }
+  const n=NOTES[q.key];
+  if(box.dataset.editing===q.key){
+    box.innerHTML=`<div class="qnote-edit">
+      <textarea id="qNoteInput" class="qnote-ta" placeholder="Escribe una nota para esta pregunta. Se comparte con todos. Admite \`código\` y fórmulas \\(x^2\\).">${n?esc(n.note):''}</textarea>
+      <div class="row" style="justify-content:space-between;align-items:center;margin-top:8px">
+        <span id="qNoteStatus" class="muted"></span>
+        <span class="row" style="gap:8px">
+          ${n?'<button class="btn-link" onclick="deleteNote()" style="color:var(--bad)">borrar</button>':''}
+          <button class="btn btn-ghost btn-sm" onclick="cancelNote()">Cancelar</button>
+          <button class="btn btn-primary btn-sm" onclick="commitNote()">Guardar</button>
+        </span>
+      </div></div>`;
+    const t=document.getElementById('qNoteInput'); if(t){ t.focus(); t.setSelectionRange(t.value.length,t.value.length); }
+  } else if(n && n.note){
+    const who=n.author?esc(n.author):'anónimo';
+    const when=n.updated_at?new Date(n.updated_at).toLocaleDateString('es-ES',{day:'2-digit',month:'short'}):'';
+    box.innerHTML=`<div class="qnote-view">
+      <div class="qnote-h"><span>📝 Nota · <b>${who}</b>${when?' · '+when:''}</span>
+        <button class="btn-link" onclick="editNote()">editar</button></div>
+      <div class="qnote-body">${rich(n.note)}</div></div>`;
+    mj(box);
+  } else {
+    box.innerHTML=`<button class="qnote-add" onclick="editNote()">📝 Añadir nota a esta pregunta</button>`;
+  }
+}
+function editNote(){ const box=document.getElementById('qNote'); box.dataset.editing=BYID[S.qs[S.cur]].key; renderNote(); }
+function cancelNote(){ const box=document.getElementById('qNote'); box.dataset.editing=''; renderNote(); }
+async function commitNote(){
+  const q=BYID[S.qs[S.cur]]; const val=document.getElementById('qNoteInput').value;
+  const st=document.getElementById('qNoteStatus'); if(st) st.textContent='Guardando…';
+  const r=await saveNote(q.key,val);
+  document.getElementById('qNote').dataset.editing=''; renderNote();
+  if(r&&r.error) toast('Nota guardada aquí; error nube: '+r.error.message);
+  else if(r&&r.local) toast('Nota guardada en este dispositivo');
+  else toast('Nota guardada ☁');
+}
+async function deleteNote(){
+  const q=BYID[S.qs[S.cur]];
+  const r=await saveNote(q.key,'');
+  document.getElementById('qNote').dataset.editing=''; renderNote();
+  toast(r&&r.error?('Borrada aquí; error nube: '+r.error.message):'Nota borrada');
 }
 function renderDots(){
   document.getElementById('dots').innerHTML=S.qs.map((id,i)=>{
@@ -772,7 +869,10 @@ function toggleAttempt(idx){
     const opts=d.opts.map((o,i)=>{ let c='ro n'; if(i===d.c)c='ro c'; else if(i===d.tu&&i!==d.c)c='ro w';
       const tag=i===d.c?' ✓':(i===d.tu&&i!==d.c?' ✗ tú':''); return `<div class="${c}"><b>${'ABCDE'[i]}</b> ${rich(o)}<span class="muted">${tag}</span></div>`; }).join('');
     const blank=d.tu===null||d.tu===undefined?'<div class="ro w"><i>en blanco</i></div>':'';
-    return `<div class="rev"><div class="rq">${d.n}. ${rich(d.q)}</div>${opts}${blank}</div>`;
+    let note='';
+    try{ const nk=qkeyOf({q:d.q,opts:d.opts}); const nn=NOTES[nk];
+      if(nn&&nn.note) note=`<div class="rev-note">📝 <b>${nn.author?esc(nn.author):'nota'}:</b> ${rich(nn.note)}</div>`; }catch(_){}
+    return `<div class="rev"><div class="rq">${d.n}. ${rich(d.q)}</div>${opts}${blank}${note}</div>`;
   }).join('') : '<p class="muted">Sin detalle guardado.</p>';
   el.classList.remove('hidden'); mj(el);
 }
@@ -818,9 +918,10 @@ async function boot(){
     document.getElementById('masteredTxt').textContent='0 / '+TOTAL;
     document.getElementById('seenTxt').textContent='0 / '+TOTAL;
     renderTopicChips(); renderCountOpts(); renderHome(); updatePool(); checkResume(); renderSaveChip();
-    if(ONLINE()){ ensureSupaPlayer(); if(player) pullProgress(); else setTimeout(promptNameStartup,300); }
-    document.addEventListener('visibilitychange',()=>{ if(!document.hidden && ONLINE() && player) pullProgress(); });
-    window.addEventListener('focus',()=>{ if(ONLINE() && player) pullProgress(); });
+    loadNotes();
+    if(ONLINE()){ ensureSupaPlayer(); if(player) pullProgress(); /* visitantes: no forzamos modal de nombre; el chip "👤 pon tu nombre" ya invita */ }
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden && ONLINE()){ loadNotes(); if(player) pullProgress(); } });
+    window.addEventListener('focus',()=>{ if(ONLINE()){ loadNotes(); if(player) pullProgress(); } });
   }catch(e){
     document.getElementById('home').innerHTML='<div class="card"><h2>No pude cargar las preguntas</h2><p class="muted">Esperaba el archivo <b>'+TXT_FILE+'</b> en la misma carpeta que este HTML. Detalle: '+e.message+'</p><p class="muted">Sube el .txt con ese nombre exacto junto al HTML y ábrelo por http(s) (GitHub Pages vale). Desde <i>file://</i> algunos navegadores bloquean leer el archivo.</p></div>';
   }
