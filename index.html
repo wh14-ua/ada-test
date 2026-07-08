@@ -523,6 +523,23 @@ function rich(raw){
 }
 function mj(el){ if(el && window.MathJax && MathJax.startup && MathJax.typesetPromise) MathJax.startup.promise.then(()=>MathJax.typesetPromise([el]).catch(()=>{})); }
 
+/* rich específico para NOTAS: conserva TODOS los saltos y líneas vacías (no colapsa) */
+function processTextNote(t){
+  const spans=[]; const SENT=i=>'\u0002'+i+'\u0002';
+  t=t.replace(/`([^`]*)`/g,(m,c)=>{ spans.push('<code class="tex2jax_ignore">'+esc(c)+'</code>'); return SENT(spans.length-1); });
+  t=t.replace(/\\\\([()\[\]])/g,'\\$1');
+  t=t.replace(/\$\$[\s\S]*?\$\$|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]/g,m=>{ spans.push(esc(fixMathSpan(m))); return SENT(spans.length-1); });
+  return t.split(/\u0002(\d+)\u0002/).map((p,idx)=> idx%2===1 ? spans[+p] : esc(p).replace(/\r\n?/g,'\n').replace(/\n/g,'<br>')).join('');
+}
+function richNote(raw){
+  const parts=String(raw==null?'':raw).split('```'); let out='';
+  for(let i=0;i<parts.length;i++){
+    if(i%2===1){ out+='<pre class="code tex2jax_ignore">'+esc(parts[i].replace(/^\n|\n$/g,''))+'</pre>'; }
+    else out+=processTextNote(parts[i]);
+  }
+  return out;
+}
+
 /* ===== HOME ===== */
 const COUNT_PRESETS=[5,10,20,50,'todas','custom'];
 let cfg={ topics:new Set(TOPICS), count:20, exam:false, shuffle:true };
@@ -684,7 +701,7 @@ function renderNote(){
     box.innerHTML=`<div class="qnote-view">
       <div class="qnote-h"><span>📝 Nota · <b>${who}</b>${when?' · '+when:''}</span>
         <button class="btn-link" onclick="editNote()">editar</button></div>
-      <div class="qnote-body">${rich(n.note)}</div></div>`;
+      <div class="qnote-body">${richNote(n.note)}</div></div>`;
     mj(box);
   } else {
     box.innerHTML=`<button class="qnote-add" onclick="editNote()">📝 Añadir nota a esta pregunta</button>`;
@@ -876,7 +893,7 @@ function toggleAttempt(idx){
     const blank=d.tu===null||d.tu===undefined?'<div class="ro w"><i>en blanco</i></div>':'';
     let note='';
     try{ const nk=qkeyOf({q:d.q,opts:d.opts}); const nn=NOTES[nk];
-      if(nn&&nn.note) note=`<div class="rev-note">📝 <b>${nn.author?esc(nn.author):'nota'}:</b> ${rich(nn.note)}</div>`; }catch(_){}
+      if(nn&&nn.note) note=`<div class="rev-note">📝 <b>${nn.author?esc(nn.author):'nota'}:</b> ${richNote(nn.note)}</div>`; }catch(_){}
     return `<div class="rev"><div class="rq">${d.n}. ${rich(d.q)}</div>${opts}${blank}${note}</div>`;
   }).join('') : '<p class="muted">Sin detalle guardado.</p>';
   el.classList.remove('hidden'); mj(el);
