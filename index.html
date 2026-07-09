@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ADA · Test de repaso</title>
+<title>ADA · Test de repaso (ponderado)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -20,8 +20,7 @@ window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['$$','$$']],proces
   --teal:#2C6E6B; --gold:#C98A2B;
   --shadow:0 1px 0 #fff7 inset, 0 10px 30px -12px #3a2c1840; --radius:16px;
 }
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
+*{box-sizing:border-box} html,body{margin:0;padding:0}
 body{
   font-family:'Hanken Grotesk',system-ui,sans-serif; color:var(--ink);
   background:
@@ -105,6 +104,14 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
 .feedback{font-size:14px;font-weight:600;padding:10px 12px;border-radius:11px;margin:6px 0 2px}
 .feedback.good{background:var(--ok-bg);color:var(--ok)}
 .feedback.miss{background:var(--bad-bg);color:var(--bad)}
+/* coach */
+.coach{background:#eef4f3;border:1px solid #cadeda;border-left:4px solid var(--teal);border-radius:12px;padding:10px 13px;margin:10px 0 2px;font-size:14px;line-height:1.55}
+.coach b{color:var(--teal)}
+.qbadges{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 0}
+.qb{font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px}
+.qb.rep{background:#fbeccb;color:#8a5e10;border:1px solid #e7cf95}
+.qb.conf{background:var(--ok-bg);color:var(--ok);border:1px solid #bfe0cc}
+.qb.dud{background:var(--bad-bg);color:var(--bad);border:1px solid #eec6c0}
 /* notas por pregunta (compartidas) */
 .qnote{margin:12px 0 2px}
 .qnote-add{appearance:none;border:1px dashed var(--line);background:#fff6;color:var(--ink2);border-radius:12px;padding:10px 14px;font:inherit;font-weight:600;font-size:14px;cursor:pointer;width:100%;text-align:left;transition:.12s}
@@ -138,6 +145,8 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
 .counter{text-align:center}
 .counter b{display:block;font-family:'Fraunces',serif;font-size:26px;line-height:1}
 .counter span{font-size:12px;color:var(--ink2)}
+.notagrade{font-family:'Fraunces',serif;font-size:34px;font-weight:700;line-height:1}
+.notabox{margin-top:12px;padding:12px 14px;border-radius:13px;border:1px solid var(--line);background:#fffdf8;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 /* review */
 .rev{border:1px solid var(--line);border-radius:12px;padding:12px;margin:9px 0;background:#fffdf8}
 .rev .rq{font-weight:600;font-size:14px;margin-bottom:8px}
@@ -162,6 +171,11 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
 .savechip{font-size:12px;border-radius:999px;padding:4px 10px;font-weight:600}
 .savechip.on{background:var(--ok-bg);color:var(--ok)}
 .savechip.off{background:var(--paper2);color:var(--ink2)}
+/* chuleta */
+.ch-sec{margin:14px 0}
+.ch-sec h3{font-family:'Fraunces',serif;font-size:16px;margin:0 0 4px;color:var(--accent2)}
+.ch-sec p{margin:4px 0;font-size:14px;line-height:1.55}
+.ch-sec .pill{display:inline-block;font-size:11px;font-weight:700;background:var(--paper2);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-left:6px;color:var(--ink2)}
 @media(max-width:560px){
   .topicbar{grid-template-columns:96px 1fr 40px}
   .dots{display:none}
@@ -171,9 +185,9 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
 </head>
 <body>
 <div class="wrap">
-  <div class="kick">Algoritmos · ADA</div>
-  <h1>Test de <em>repaso</em></h1>
-  <p class="sub" id="subline">734 preguntas · modo estudio o examen · tus fallos quedan guardados</p>
+  <div class="kick">Algoritmos · ADA · examen mañana</div>
+  <h1>Test de <em>repaso</em> ponderado</h1>
+  <p class="sub" id="subline">Cargando repertorio…</p>
 
   <!-- HOME -->
   <div id="home">
@@ -187,16 +201,26 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
 
     <div class="card">
       <div class="row spread" style="align-items:flex-start">
-        <h2 style="margin:0">Tu progreso</h2>
+        <h2 style="margin:0">Plan de choque para mañana</h2>
         <span id="saveChip" class="savechip off">local</span>
       </div>
+      <p class="muted" style="margin:6px 0 10px">El examen penaliza: <b>1 fallo resta ½ acierto</b>. Con 3 opciones: si descartas una, contesta (esperanza +0,25); si vas totalmente a ciegas, en blanco. El repertorio ya viene ponderado: 4 temas concentran el 83% de las preguntas y el 41% son variantes repetidas.</p>
+      <div class="row">
+        <button class="btn btn-primary" onclick="startExamSim()">🎓 Simulacro de examen (20)</button>
+        <button class="btn btn-ghost" onclick="startTopRepeated()">🎯 Top repetidas (20)</button>
+        <button class="btn btn-ghost" onclick="openChuleta()">📌 Chuleta del análisis</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tu progreso</h2>
       <div class="statgrid" style="margin-top:12px">
         <div>
-          <div class="statline"><span>Dominadas (acertadas alguna vez)</span><b id="masteredTxt">0 / 734</b></div>
+          <div class="statline"><span>Dominadas (acertadas alguna vez)</span><b id="masteredTxt">0 / 0</b></div>
           <div class="bar fill-ok"><span id="masteredBar" style="width:0%"></span></div>
         </div>
         <div>
-          <div class="statline"><span>Vistas</span><b id="seenTxt">0 / 734</b></div>
+          <div class="statline"><span>Vistas</span><b id="seenTxt">0 / 0</b></div>
           <div class="bar fill-teal"><span id="seenBar" style="width:0%"></span></div>
         </div>
         <div>
@@ -205,7 +229,7 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
         </div>
       </div>
       <div style="margin-top:16px">
-        <div class="muted" style="margin-bottom:6px;font-weight:600">Dominio por tema</div>
+        <div class="muted" style="margin-bottom:6px;font-weight:600">Dominio por tema (ordenado por peso en el examen)</div>
         <div id="topicBars"></div>
       </div>
       <div class="row" style="margin-top:14px">
@@ -216,11 +240,12 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
 
     <div class="card">
       <h2>Configura tu test</h2>
-      <div class="muted" style="margin-bottom:6px;font-weight:600">Temas</div>
+      <div class="muted" style="margin-bottom:6px;font-weight:600">Temas · 🔴 prioridad máxima · 🟡 media · 🟢 baja</div>
       <div class="chips" id="topicChips"></div>
       <div class="row" style="margin-top:6px">
         <button class="chip small" onclick="setAllTopics(true)">Todos</button>
         <button class="chip small" onclick="setAllTopics(false)">Ninguno</button>
+        <button class="chip small" onclick="setCoreTopics()">Solo los 4 🔴</button>
       </div>
 
       <div class="muted" style="margin:16px 0 6px;font-weight:600">Nº de preguntas</div>
@@ -231,9 +256,12 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
 
       <div class="row spread" style="margin-top:18px">
         <label class="switch"><input type="checkbox" id="modeExam"><span class="track"></span><span id="modeLbl">Modo Estudio</span></label>
-        <label class="switch"><input type="checkbox" id="shuffle"><span class="track"></span>Barajar</label>
+        <label class="switch"><input type="checkbox" id="shuffle" checked><span class="track"></span>Barajar preguntas</label>
       </div>
-      <p class="muted" id="modeDesc" style="margin:10px 0 0">Estudio: corrige al instante y muestra la respuesta correcta.</p>
+      <div class="row spread" style="margin-top:10px">
+        <label class="switch"><input type="checkbox" id="shuffleOpts" checked><span class="track"></span>Barajar opciones (recomendado)</label>
+      </div>
+      <p class="muted" id="modeDesc" style="margin:10px 0 0">Estudio: corrige al instante, muestra la correcta y el apunte del coach. Las opciones se barajan para que aprendas el contenido, no la posición (en el examen vienen en otro orden).</p>
 
       <div style="margin-top:18px">
         <button class="btn btn-primary" style="width:100%;font-size:16px;padding:15px" onclick="startTest()">Empezar test →</button>
@@ -254,9 +282,11 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
       <div class="hud" id="qHud"></div>
     </div>
     <div class="card" style="margin-top:10px">
+      <div class="qbadges" id="qBadges"></div>
       <div class="qtext" id="qText"></div>
       <div id="qOpts"></div>
       <div id="qFeedback"></div>
+      <div id="qCoach"></div>
       <div id="qNote" class="qnote"></div>
     </div>
     <div class="navbar">
@@ -289,6 +319,10 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
           <div class="muted" id="saveStatus" style="margin-top:8px"></div>
         </div>
       </div>
+      <div class="notabox">
+        <div><span class="muted">Nota con penalización real (fallo = −½)</span><br><span class="notagrade" id="notaPen">—</span><span class="muted"> / 10</span></div>
+        <div class="muted" id="notaDetail"></div>
+      </div>
     </div>
     <div class="card">
       <h2>Rendimiento por tema</h2>
@@ -296,7 +330,7 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
     </div>
     <div class="card">
       <div class="row spread">
-        <h2 style="margin:0">Repaso</h2>
+        <h2 style="margin:0">Repaso <span class="muted" style="font-weight:400">(opciones en orden canónico)</span></h2>
         <div class="row">
           <button class="chip small" id="revWrongBtn" aria-pressed="true" onclick="setRevFilter('wrong')">Solo fallos</button>
           <button class="chip small" id="revAllBtn" aria-pressed="false" onclick="setRevFilter('all')">Todas</button>
@@ -324,6 +358,41 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
   </div>
 </div>
 
+<!-- CHULETA MODAL -->
+<div class="modal-bg" id="chuletaModal">
+  <div class="modal">
+    <div class="row spread"><h2 style="font-family:Fraunces;margin:0">📌 Chuleta del análisis</h2><button class="btn btn-ghost" onclick="closeChuleta()">Cerrar</button></div>
+    <div class="ch-sec">
+      <h3>Estrategia con penalización (−½ por fallo)</h3>
+      <p>Con 3 opciones: <b>descartas 1 → contesta</b> (esperanza +0,25). A ciegas total → esperanza 0: déjala en blanco y sigue. Subraya si piden la <b>FALSA</b> o la <b>CIERTA</b> antes de leer opciones (~55 preguntas piden la falsa/diferente). "Ninguna de las otras / las demás son falsas" es correcta el <b>40%</b> de las veces que aparece: no la descartes por pereza. La posición no da pistas (32/33/33%): decide siempre por contenido.</p>
+    </div>
+    <div class="ch-sec">
+      <h3>Complejidad <span class="pill">35% del repertorio</span></h3>
+      <p>Bucles con límites que dependen de i o de una constante k (2k iteraciones = Θ(n), no Θ(n²)). Conjuntos: <b>O(n²)⊂O(n³)</b> ✓ · <b>Ω(n³)⊂Ω(n²)</b> (¡al revés!) · Θ distintos son disjuntos. El <b>mejor caso de un recursivo NO es el caso base</b> de la recurrencia (correcta: "las demás son falsas"). "k menores de n" → montículo O(n + k·log n). Quicksort con pivote mediana → Θ(n·log n) garantizado.</p>
+    </div>
+    <div class="ch-sec">
+      <h3>Prog. Dinámica <span class="pill">17,5%</span></h3>
+      <p>PD necesita subproblemas repetidos + dominio discreto para la tabla iterativa; con pesos/tiempos <b>reales</b> la iterativa no puede indexar pero la <b>memoización sí</b> (y puede gastar mucha menos memoria). Mochila/alfarero en todas sus variantes → PD. Hanoi NO es PD. Coste mochila O(n·W), pseudo-polinómico.</p>
+    </div>
+    <div class="ch-sec">
+      <h3>Backtracking / Ramificación y poda <span class="pill">15,3%</span></h3>
+      <p><b>Optimista = insuperable</b> (no necesariamente alcanzable; si se pudiera superar, podarías el nodo del óptimo). <b>Pesimista = valor garantizado alcanzable</b>. Maximización: optimista ≥ pesimista (en minimización se invierte). Mochila: continua = optimista ajustada · voraz factible = pesimista ajustada · "todos los objetos pasándose de peso" = optimista burda. Enumerar <b>TODAS</b> las soluciones → el orden da igual → B&amp;B no aporta nada frente a vuelta atrás.</p>
+    </div>
+    <div class="ch-sec">
+      <h3>Grafos / MST <span class="pill">15%</span></h3>
+      <p><b>Union-find acelera Kruskal</b> (no Prim). <b>Prim</b> se acelera guardando el "padre más cercano" de cada vértice, y NO es divide y vencerás. Kruskal construye un <b>bosque</b> que va uniendo. MST sobre grafo <b>dirigido</b>: Prim/Kruskal no valen. Dijkstra apenas cae.</p>
+    </div>
+    <div class="ch-sec">
+      <h3>Voraz · Heaps · DyV <span class="pill">11%</span></h3>
+      <p>Voraz: eficiente porque <b>no reconsidera decisiones</b>; el cambio NO tiene voraz trivial correcto; mochila continua → voraz por valor específico (valor/peso) es óptimo (en la discreta es solo heurística). Heaps: <code>priority_queue</code> de C++ es de <b>MÁXIMOS</b>; heapify O(n) &lt; n inserciones O(n·log n); sacar k → O(k·log n). DyV: mejor cuanto <b>más equitativa</b> la división; puede ser exponencial; Hanoi T(n)=2T(n−1)+1 → Θ(2ⁿ).</p>
+    </div>
+    <div class="ch-sec">
+      <h3>⚠️ Erratas conocidas del solucionario</h3>
+      <p>Mochila continua → la correcta es <b>voraz</b> (hay copias que marcan DyV). Hanoi → <b>T(n)=2T(n−1)+1</b> (hay una copia con +n). "Problema sin PD eficiente" → <b>Hanoi</b> (cortar el tubo SÍ es PD clásico). Hay una copia que marca como pesimista una cota claramente optimista. La app marca en rojo las preguntas con soluciones contradictorias: en esas, fíate de la teoría y del apunte del coach.</p>
+    </div>
+  </div>
+</div>
+
 <!-- NAME MODAL -->
 <div class="modal-bg" id="nameModal">
   <div class="modal" style="max-width:420px">
@@ -340,45 +409,51 @@ pre.code{background:#2b2620;color:#f3ead7;padding:12px 14px;border-radius:12px;o
 <div class="toast" id="toast"></div>
 
 <script>
-/* ===== DATA (se lee del .txt en tiempo de ejecución) ===== */
-const TXT_FILE = "adaPreguntas.txt";   // <- pon tu .txt con ESTE nombre, junto al HTML
-let QUESTIONS=[], TOPICS=[], BYID={}, TOTAL=0;
-function parseTxt(text){
-  const lines=text.split(/\r?\n/).map(l=>l.replace(/\s+$/,'')); const N=lines.length;
-  const out=[]; let buf=[]; let i=0; const bare=/^\s*[1-5]\s*$/;
-  const cleanQ=b=>b.join('\n').trim().replace(/\s*(CONFIRMADA|DUDA|REVISAR)\s*$/,'').trim();
-  while(i<N){
-    const l=lines[i];
-    if(bare.test(l)){
-      const ans=parseInt(l.trim(),10);
-      // Formato A: líneas consecutivas que empiezan por "- "
-      let j=i+1; const dash=[];
-      while(j<N && lines[j].trim().startsWith('- ')){ dash.push(lines[j].trim().slice(2).trim()); j++; }
-      if(dash.length>=2 && dash.length<=6 && ans<=dash.length){
-        const q=cleanQ(buf); if(q) out.push({q,ans:ans-1,opts:dash}); buf=[]; i=j; continue;
-      }
-      // Formato B: líneas consecutivas no vacías y sin guion, hasta una línea en blanco
-      let k=i+1; const plain=[];
-      while(k<N && lines[k].trim()!=='' && !lines[k].trim().startsWith('- ')){ plain.push(lines[k].trim()); k++; }
-      if(plain.length>=2 && plain.length<=6 && ans<=plain.length){
-        const q=cleanQ(buf); if(q) out.push({q,ans:ans-1,opts:plain}); buf=[]; i=k; continue;
-      }
-    }
-    buf.push(l); i++;
+/* ===== DATA (se lee del .txt clasificado en tiempo de ejecución) ===== */
+const TXT_FILE = "adaPreguntas_clasificadas.txt";   // <- el fichero clasificado, junto al HTML
+let QUESTIONS=[], TOPICS=[], BYID={}, TOTAL=0, REPERTOIRE=0;
+
+/* Orden de prioridad según el análisis (peso en el examen) */
+const TOPIC_PRIORITY=['Complejidad','Prog. Dinámica','Backtrack/Poda','Grafos/MST','General','Voraz/Greedy','Heaps/Colas','Divide y Vencerás'];
+const TOPIC_BADGE={'Complejidad':'🔴','Prog. Dinámica':'🔴','Backtrack/Poda':'🔴','Grafos/MST':'🔴','General':'🟡','Voraz/Greedy':'🟡','Heaps/Colas':'🟡','Divide y Vencerás':'🟢'};
+const CORE_TOPICS=['Complejidad','Prog. Dinámica','Backtrack/Poda','Grafos/MST'];
+
+/*PARSE_START*/
+function deacc(s){ return s.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
+function nzTxt(s){ return deacc(s).replace(/[^a-z0-9]+/g,''); }
+
+/* Parser del formato clasificado:
+   [Tema · n]  (global #N)
+   enunciado (multilínea)
+   <nº de la respuesta correcta>
+   - opción
+   - opción ...
+*/
+function parseClasificado(text){
+  const lines=text.split(/\r?\n/);
+  const hdr=/^\[([^\]]+?)·\s*\d+\]\s*\(global #(\d+)\)\s*$/;
+  const marks=[];
+  for(let i=0;i<lines.length;i++){ const m=lines[i].match(hdr); if(m) marks.push({i,topic:m[1].trim(),glob:parseInt(m[2],10)}); }
+  const out=[];
+  for(let k=0;k<marks.length;k++){
+    const a=marks[k].i+1, b=(k+1<marks.length? marks[k+1].i : lines.length);
+    const blk=lines.slice(a,b);
+    const oi=[]; for(let j=0;j<blk.length;j++){ if(blk[j].trim().startsWith('- ')) oi.push(j); }
+    if(!oi.length) continue;
+    let ans=null, qEnd=oi[0];
+    for(let j=oi[0]-1;j>=0;j--){ const s=blk[j].trim(); if(s==='')continue;
+      if(/^\d+$/.test(s)){ ans=parseInt(s,10); qEnd=j; } break; }
+    if(ans===null) continue;
+    let stem=blk.slice(0,qEnd).join('\n').trim();
+    const conf=/\bCONFIRMADA\b/.test(stem);
+    stem=stem.replace(/\s*(CONFIRMADA|DUDA|REVISAR)\s*$/,'').replace(/\s*Seleccione una:?\s*$/i,'').trim();
+    const opts=oi.map(j=>blk[j].trim().slice(2).trim()).filter(o=>o.length);
+    if(opts.length<2 || ans>opts.length) continue;
+    out.push({topic:marks[k].topic, glob:marks[k].glob, q:stem, ans:ans-1, opts, conf});
   }
   return out;
 }
-function topicOf(t){ const s=t.toLowerCase(); const has=a=>a.some(k=>s.includes(k));
-  if(has(['prim','kruskal','recubrimiento','union-find','union find','grafo','vertice','vértice','arista','dijkstra','floyd','bipartit','camino mas corto','camino más corto'])) return 'Grafos/MST';
-  if(has(['heap','monticul','montícul','priority','heapify','monticuliz','cola de prioridad'])) return 'Heaps/Colas';
-  if(has(['memoizac','programacion dinamica','programación dinámica','dinamica iterativa','dinámica iterativa','subproblema','tabla de subproblemas'])) return 'Prog. Dinámica';
-  if(has(['vuelta atras','vuelta atrás','ramificacion','ramificación','poda','enumeracion','enumeración','cota optimista','cota pesimista','viajante','backtrack','branch and bound','arbol de busqueda','árbol de búsqueda'])) return 'Backtrack/Poda';
-  if(has(['voraz','greedy','mochila fraccion','seleccion de actividades','selección de actividades'])) return 'Voraz/Greedy';
-  if(has(['divide y venceras','divide y vencerás','divide-and-conquer','divide y vencer'])) return 'Divide y Vencerás';
-  if(has(['complejidad','coste','o(','θ','ω','sumatorio','recurrencia','asintot','asíntot','notacion','notación','log','teorema maestro','peor caso','mejor caso'])) return 'Complejidad';
-  return 'General';
-}
-/* ===== CLAVE ESTABLE POR PREGUNTA (para notas) ===== */
+
 function cyrb53(str,seed=0){ let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;
   for(let i=0,ch;i<str.length;i++){ ch=str.charCodeAt(i);
     h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
@@ -387,23 +462,86 @@ function cyrb53(str,seed=0){ let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;
   return (4294967296*(2097151&h2)+(h1>>>0)).toString(36); }
 function qkeyOf(q){ const s=(q.q.trim()+'||'+q.opts.map(o=>o.trim()).join('|')).replace(/\s+/g,' ').toLowerCase(); return 'k'+cyrb53(s); }
 
+/* Apuntes del coach: inyectados a partir del análisis del repertorio */
+const COACH_RULES=[
+ [/mejor de los casos de un algoritmo recursivo/, 'Trampa clásica: el mejor caso de un recursivo NO tiene por qué coincidir con el caso base de la recurrencia. En esta familia la correcta suele ser «las demás son falsas».'],
+ [/cota (optimista|pesimista) mas ajustada/, 'Mochila: continua → optimista ajustada · voraz factible → pesimista ajustada · «todos los objetos aunque se pase de peso» → optimista burda. Ojo: hay una copia del solucionario que marca mal la pesimista.'],
+ [/cota pesimista es (menor|mayor) que el\s+valor\s+de\s+una\s+cota\s+optimista|cota pesimista es (menor|mayor) que/, 'Maximización: optimista ≥ pesimista. Minimización: se invierte. Pueden coincidir.'],
+ [/los algoritmos de ramificacion y poda\b/, 'Definiciones: OPTIMISTA = valor insuperable (no necesariamente alcanzable; si se pudiera superar, podarías el nodo del óptimo). PESIMISTA = valor garantizado alcanzable.'],
+ [/todas las soluciones factibles/, 'Cae ×5: si quieres enumerar TODAS las soluciones, el orden de exploración da igual → ramificación y poda NO aporta nada frente a vuelta atrás.'],
+ [/basado en (el esquema )?divide y venceras/, 'Cae ×8: DyV es más eficiente cuanto MÁS EQUITATIVA es la división, y SÍ puede ser exponencial (Hanoi). Las otras dos afirmaciones de esta familia son falsas.'],
+ [/hanoi/, 'Hanoi: T(n)=2T(n−1)+1 → Θ(2ⁿ). NO es PD (no hay subproblemas repetidos que reaprovechar y la propia salida es exponencial). Errata: una copia del fichero marca +n.'],
+ [/mochila continua/, 'Mochila continua → VORAZ por valor específico (valor/peso) es ÓPTIMO. Las copias del fichero marcadas «divide y vencerás» son errata.'],
+ [/valores continuos/, 'Cae ×5: con dominio continuo la tabla ITERATIVA no se puede indexar; la MEMOIZACIÓN (PD recursiva) sí funciona y puede gastar mucha menos memoria.'],
+ [/priority.?queue/, 'priority_queue<T> de C++ es de MÁXIMOS por defecto.'],
+ [/heapify|monticulizar/, 'Monticulizar (heapify) un vector: O(n). Mejor que n inserciones sueltas, O(n·log n). Por eso «fichero → vector → heapify» gana.'],
+ [/\bprim\b|kruskal|union.?find/, 'Union-find acelera KRUSKAL (no Prim). Prim se acelera guardando el «padre más cercano» de cada vértice y NO es DyV. Kruskal construye un bosque. MST sobre grafo DIRIGIDO: Prim/Kruskal no valen.'],
+ [/problema del cambio/, 'El cambio NO tiene voraz trivial correcto para monedas arbitrarias; con PD sí se resuelve (pseudo-polinómico).'],
+ [/k valores mas pequen|k menores|k mas pequen/, '«k menores de n elementos» → montículo: O(n + k·log n).'],
+ [/alfarero/, 'Alfarero (cae ×10 entre variantes): lo más eficiente es PD; con tiempos continuos, la versión recursiva con memoización.'],
+ [/o bien dos son (ciertas|verdaderas)/, 'Familia «dos ciertas una falsa»: evalúa cada afirmación por separado y marca la DIFERENTE. Recuerda: O(n²)⊂O(n³) ✓, Ω va al revés, los Θ distintos son disjuntos.'],
+ [/pivote la mediana/, 'Quicksort con pivote = mediana exacta: partición siempre equilibrada → Θ(n·log n) también en el peor caso (a costa de calcular la mediana).'],
+];
+function coachFor(stem){
+  const s=deacc(stem); const notes=[];
+  for(const [re,txt] of COACH_RULES){ if(re.test(s)){ notes.push(txt); if(notes.length>=2) break; } }
+  return notes.join(' · ');
+}
+
+/* Erratas del solucionario arbitradas con teoría clara: se corrige la respuesta.
+   [regex sobre el enunciado (sin acentos, minúsculas), regex sobre la opción correcta, explicación] */
+const ERRATA_FIXES=[
+ [/mochila continua sigue el esquema/, /voraz/, 'Errata corregida: la mochila continua se resuelve de forma ÓPTIMA con un voraz por valor específico (valor/peso); el solucionario original marcaba «divide y vencerás».'],
+ [/torres de hanoi resuelto mediante divide y venceras/, /2t\(n ?- ?1\) ?\+ ?1/, 'Errata corregida: la recurrencia de Hanoi es T(n)=2T(n−1)+1 (una llamada por cada subtorre + mover 1 disco).'],
+ [/no tiene una solucion eficiente que siga el esquema de programacion dinamica/, /hanoi/, 'Errata corregida: el que NO se beneficia de PD es Hanoi (sin subproblemas repetidos que reaprovechar y salida exponencial); cortar el tubo (rod cutting) es PD de libro.'],
+ [/estrategias proveeria la cota pesimista mas ajustada/, /voraz/, 'Errata corregida: una cota PESIMISTA debe ser un valor alcanzable; completar con la mejor solución voraz factible lo es (y es la más ajustada). «Todos los objetos pasándose de peso» sería una cota optimista.'],
+ [/f1\(n\).*f2\(n\).*entonces/, /ambas son correctas/, 'Corregido: tanto f1+f2 ∈ O(g1+g2) como f1·f2 ∈ O(g1·g2) son propiedades ciertas de la notación O → «ambas son correctas».'],
+];
+function applyErrata(q){
+  const s=deacc(q.q);
+  for(const [reQ,reOpt,msg] of ERRATA_FIXES){
+    if(!reQ.test(s)) continue;
+    const idx=q.opts.findIndex(o=>reOpt.test(deacc(o)));
+    if(idx>=0 && idx!==q.ans){ q.ans=idx; q.fixed=true; q.dudosa=false; q.coach=msg; }
+    else if(idx>=0){ q.dudosa=false; if(!q.coach) q.coach=msg; }
+    return;
+  }
+}
+
 function buildQuestions(text){
-  const parsed=parseTxt(text); const seen={}; const uniq=[];
-  const norm=s=>s.replace(/```[\s\S]*?```/g,' ').replace(/\s+/g,' ').toLowerCase().trim();  // texto sin código para comparar
-  for(const q of parsed){ const key=q.q.replace(/\s+/g,' ').toLowerCase()+'||'+q.opts.map(o=>o.toLowerCase()).join('|');
-    if(seen[key])continue; seen[key]=1; uniq.push(q); }
-  // elimina duplicados truncados: misma lista de opciones y el texto es subcadena de otra versión más larga
-  const optKey=q=>q.opts.map(o=>o.replace(/\s+/g,' ').toLowerCase().trim()).join('|');
-  const groups={}; uniq.forEach((q,i)=>{ (groups[optKey(q)]||(groups[optKey(q)]=[])).push(i); });
-  const drop=new Set();
-  for(const g in groups){ const ix=groups[g]; if(ix.length<2)continue;
-    for(const a of ix) for(const b of ix){ if(a===b||drop.has(a)||drop.has(b))continue;
-      const ta=norm(uniq[a].q), tb=norm(uniq[b].q);
-      if(tb && ta.length>tb.length && ta.includes(tb)) drop.add(b); } }  // b es la versión recortada -> fuera
-  const out=[]; let k=0;
-  uniq.forEach((q,i)=>{ if(drop.has(i))return; k++; out.push({id:'q'+k,q:q.q,opts:q.opts,ans:q.ans,t:topicOf(q.q),key:qkeyOf(q)}); });
+  const parsed=parseClasificado(text);
+  REPERTOIRE=parsed.length;
+  /* familias por enunciado (para peso ×N: nº de apariciones en el repertorio) */
+  const famCount={};
+  for(const p of parsed){ const fk=nzTxt(p.q).slice(0,100); famCount[fk]=(famCount[fk]||0)+1; }
+  /* dedup exacto: mismo enunciado + mismo CONJUNTO de opciones */
+  const groups={};
+  for(const p of parsed){
+    const key=nzTxt(p.q)+'||'+p.opts.map(o=>nzTxt(o)).sort().join('|');
+    (groups[key]||(groups[key]=[])).push(p);
+  }
+  const out=[];
+  for(const key in groups){
+    const g=groups[key];
+    /* representante: preferimos la CONFIRMADA; si no, la de enunciado más largo (menos truncada) */
+    let rep=g.find(x=>x.conf)||g.slice().sort((a,b)=>b.q.length-a.q.length)[0];
+    const correctSet=new Set(g.map(x=>nzTxt(x.opts[x.ans]||'').slice(0,80)));
+    const dudosa=correctSet.size>1;
+    const conf=g.some(x=>x.conf);
+    const fk=nzTxt(rep.q).slice(0,100);
+    const w=Math.max(g.length, famCount[fk]||1);
+    const q={ q:rep.q, opts:rep.opts, ans:rep.ans, t:rep.topic, glob:rep.glob,
+              w, conf, dudosa, coach:coachFor(rep.q) };
+    q.key=qkeyOf(q); q.id=q.key;
+    applyErrata(q);
+    if(q.dudosa && !q.coach) q.coach='Esta pregunta aparece en el repertorio con soluciones contradictorias: razona con la teoría, no con el solucionario.';
+    out.push(q);
+  }
+  /* mantener orden del repertorio */
+  out.sort((a,b)=>a.glob-b.glob);
   return out;
 }
+/*PARSE_END*/
 
 /* ===== SAFE STORAGE ===== */
 const mem = {};
@@ -414,8 +552,8 @@ function jget(k,def){ try{ const v=LS.get(k); return v==null?def:JSON.parse(v);}
 function jset(k,v){ try{ LS.set(k,JSON.stringify(v)); }catch(e){} }
 
 /* ===== SUPABASE (optional) ===== */
-const SUPA_URL="https://sdlhogwrrbwofimipnfa.supabase.co", SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkbGhvZ3dycmJ3b2ZpbWlwbmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NzMxODQsImV4cCI6MjA5NzA0OTE4NH0._3noL_0vdPDcWsp5GXVhd1nkJelqnBZBF5lVUdlvdXg";
-
+const SUPA_URL="https://sdlhogwrrbwofimipnfa.supabase.co",
+SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkbGhvZ3dycmJ3b2ZpbWlwbmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NzMxODQsImV4cCI6MjA5NzA0OTE4NH0._3noL_0vdPDcWsp5GXVhd1nkJelqnBZBF5lVUdlvdXg";
 let sb=null;
 try{ if(window.supabase && SUPA_URL && SUPA_KEY && !SUPA_URL.startsWith("https://PEGA") && !SUPA_KEY.startsWith("PEGA"))
   sb=window.supabase.createClient(SUPA_URL,SUPA_KEY); }catch(e){}
@@ -423,9 +561,10 @@ const ONLINE=()=>!!sb;
 
 /* ===== PLAYER + PROGRESS ===== */
 let player = jget('ada_player', null);
-// progress: { mastered:{id:1}, fails:{id:count}, seen:{id:1} }
 let prog = jget('ada_prog', {mastered:{}, fails:{}, seen:{}});
 function saveProgLocal(){ jset('ada_prog', prog); }
+function pruneProg(){ ['mastered','fails','seen'].forEach(k=>{ const o=prog[k]||{};
+  for(const id in o){ if(!BYID[id]) delete o[id]; } prog[k]=o; }); saveProgLocal(); }
 
 async function ensurePlayer(){
   if(player) return player;
@@ -440,13 +579,11 @@ function closeName(ok){
   if(pendingName){ pendingName(player); pendingName=null; }
   renderSaveChip(); renderHome();
 }
-function promptNameStartup(){ if(player) return; document.getElementById('nameInput').value=''; document.getElementById('nameModal').classList.add('show'); document.getElementById('nameInput').focus(); }
 async function ensureSupaPlayer(){
   if(!ONLINE()||!player) return;
   const {error}=await sb.from('ada_players').upsert({name:player,last_seen:new Date().toISOString()});
   if(error) console.warn('player upsert',error.message);
 }
-
 async function pullProgress(){
   if(!ONLINE()||!player) return;
   const {data,error}=await sb.from('ada_progress').select('*').eq('player',player).maybeSingle();
@@ -455,7 +592,7 @@ async function pullProgress(){
     prog.mastered = Object.assign({}, data.mastered||{}, prog.mastered);
     prog.fails    = mergeFails(data.failed||{}, prog.fails);
     prog.seen     = Object.assign({}, (data.config&&data.config.seen)||{}, prog.seen);
-    saveProgLocal(); renderHome();
+    pruneProg(); renderHome();
   }
 }
 function mergeFails(a,b){ const o=Object.assign({},a); for(const k in b){ o[k]=Math.max(o[k]||0,b[k]); } return o; }
@@ -467,13 +604,12 @@ async function pushProgress(){
     config:{seen:prog.seen}, updated_at:new Date().toISOString() });
   if(error) console.warn('push prog',error.message);
 }
-let _pushT=null;
-function debouncedPush(){ clearTimeout(_pushT); _pushT=setTimeout(()=>pushProgress(),600); }
+let _pushT=null; function debouncedPush(){ clearTimeout(_pushT); _pushT=setTimeout(()=>pushProgress(),600); }
 
 /* ===== NOTAS POR PREGUNTA (compartidas) ===== */
-let NOTES = jget('ada_notes_cache', {}); // qkey -> {note, author, updated_at}
-let _noteDraft = null;   // borrador sin guardar (por si algo redibuja)
-let _noteSaveT = null;   // temporizador de autoguardado
+let NOTES = jget('ada_notes_cache', {});
+let _noteDraft = null;
+let _noteSaveT = null;
 function setNoteStatus(m){ const st=document.getElementById('qNoteStatus'); if(st) st.textContent=m; }
 function noteDraftInput(el){
   if(!S) return;
@@ -481,11 +617,11 @@ function noteDraftInput(el){
   _noteDraft={qkey:k, text:el.value};
   setNoteStatus('escribiendo…');
   clearTimeout(_noteSaveT);
-  _noteSaveT=setTimeout(()=>autosaveNote(k),1200);   // autoguarda 1,2 s tras dejar de teclear
+  _noteSaveT=setTimeout(()=>autosaveNote(k),1200);
 }
 async function autosaveNote(qkey){
   const box=document.getElementById('qNote');
-  if(!box || box.dataset.editing!==qkey) return;      // ya no editas esta pregunta
+  if(!box || box.dataset.editing!==qkey) return;
   const ta=document.getElementById('qNoteInput'); if(!ta) return;
   setNoteStatus('guardando…');
   const r=await saveNote(qkey, ta.value);
@@ -496,10 +632,10 @@ async function autosaveNote(qkey){
 function flushNoteIfEditing(){
   const box=document.getElementById('qNote'); if(!box) return;
   const ek=box.dataset.editing; if(!ek) return;
-  if(!_noteDraft || _noteDraft.qkey!==ek) return;     // no tecleaste nada
+  if(!_noteDraft || _noteDraft.qkey!==ek) return;
   const ta=document.getElementById('qNoteInput'); if(!ta) return;
   clearTimeout(_noteSaveT);
-  saveNote(ek, ta.value);                             // local ya queda hecho; nube en segundo plano
+  saveNote(ek, ta.value);
 }
 async function loadNotes(){
   if(!ONLINE()) return;
@@ -509,7 +645,7 @@ async function loadNotes(){
   NOTES=map; jset('ada_notes_cache',NOTES);
   if(S && !document.getElementById('test').classList.contains('hidden')){
     const nb=document.getElementById('qNote');
-    if(!nb || !nb.dataset.editing) renderNote(); // no pisar el cuadro si estás escribiendo
+    if(!nb || !nb.dataset.editing) renderNote();
   }
 }
 function withTimeout(p,ms){ return Promise.race([ Promise.resolve(p), new Promise((_,rej)=>setTimeout(()=>rej(new Error('tiempo agotado')),ms)) ]); }
@@ -523,7 +659,7 @@ async function cloudWriteNote(qkey,clean,updated_at){
       if(!error) return {ok:true};
       if(i) return {ok:false,msg:error.message};
     }catch(e){ if(i) return {ok:false,msg:(e&&e.message)||'sin conexión'}; }
-    await new Promise(r=>setTimeout(r,500)); // pequeño backoff antes de reintentar
+    await new Promise(r=>setTimeout(r,500));
   }
   return {ok:false,msg:'sin conexión'};
 }
@@ -531,7 +667,7 @@ async function saveNote(qkey,text){
   const clean=text.trim();
   const rec={note:clean,author:player||null,updated_at:new Date().toISOString()};
   if(clean) NOTES[qkey]=rec; else delete NOTES[qkey];
-  jset('ada_notes_cache',NOTES);                 // local PRIMERO: nunca se pierde
+  jset('ada_notes_cache',NOTES);
   if(!ONLINE()) return {local:true};
   const r=await cloudWriteNote(qkey,clean,rec.updated_at);
   return r.ok ? {ok:true} : {error:{message:r.msg}};
@@ -546,13 +682,13 @@ function shuffleArr(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.r
 
 /* ===== RICH TEXT (código + LaTeX vía MathJax) ===== */
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function fixMathSpan(m){ if(/\\\\[A-Za-z]/.test(m)) m=m.replace(/\\\\/g,'\\'); return m; }  // colapsa LaTeX doble-escapado
+function fixMathSpan(m){ if(/\\\\[A-Za-z]/.test(m)) m=m.replace(/\\\\/g,'\\'); return m; }
 function processText(t){
   const spans=[]; const SENT=i=>'\u0002'+i+'\u0002';
   t=t.replace(/`([^`]*)`/g,(m,c)=>{ spans.push('<code class="tex2jax_ignore">'+esc(c)+'</code>'); return SENT(spans.length-1); });
-  t=t.replace(/\\\\([()\[\]])/g,'\\$1');                          // normaliza delimitadores \( \) \[ \]
+  t=t.replace(/\\\\([()\[\]])/g,'\\$1');
   t=t.replace(/\$\$[\s\S]*?\$\$|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]/g,m=>{ spans.push(esc(fixMathSpan(m))); return SENT(spans.length-1); });
-  t=t.replace(/\\r/g,'').replace(/\\n/g,'\n').replace(/\\t/g,' '); // escapes de espacio (solo fuera de fórmulas)
+  t=t.replace(/\\r/g,'').replace(/\\n/g,'\n').replace(/\\t/g,' ');
   return t.split(/\u0002(\d+)\u0002/).map((p,idx)=> idx%2===1 ? spans[+p] : esc(p).replace(/\n{2,}/g,'\n').replace(/^\n+|\n+$/g,'').replace(/\n/g,'<br>')).join('');
 }
 function rich(raw){
@@ -564,8 +700,6 @@ function rich(raw){
   return out;
 }
 function mj(el){ if(el && window.MathJax && MathJax.startup && MathJax.typesetPromise) MathJax.startup.promise.then(()=>MathJax.typesetPromise([el]).catch(()=>{})); }
-
-/* rich específico para NOTAS: conserva TODOS los saltos y líneas vacías (no colapsa) */
 function processTextNote(t){
   const spans=[]; const SENT=i=>'\u0002'+i+'\u0002';
   t=t.replace(/`([^`]*)`/g,(m,c)=>{ spans.push('<code class="tex2jax_ignore">'+esc(c)+'</code>'); return SENT(spans.length-1); });
@@ -584,10 +718,11 @@ function richNote(raw){
 
 /* ===== HOME ===== */
 const COUNT_PRESETS=[5,10,20,50,'todas','custom'];
-let cfg={ topics:new Set(TOPICS), count:20, exam:false, shuffle:false };
+let cfg={ topics:new Set(), count:20, exam:false, shuffle:true };
 function renderHome(){
-  // stats
-  const nm=Object.keys(prog.mastered).length, ns=Object.keys(prog.seen).length, nf=Object.keys(prog.fails).filter(k=>prog.fails[k]>0).length;
+  const nm=Object.keys(prog.mastered).filter(k=>BYID[k]).length,
+        ns=Object.keys(prog.seen).filter(k=>BYID[k]).length,
+        nf=Object.keys(prog.fails).filter(k=>prog.fails[k]>0 && BYID[k]).length;
   document.getElementById('masteredTxt').textContent=nm+' / '+TOTAL;
   document.getElementById('masteredBar').style.width=pct(nm,TOTAL)+'%';
   document.getElementById('seenTxt').textContent=ns+' / '+TOTAL;
@@ -595,10 +730,9 @@ function renderHome(){
   document.getElementById('failTxt').textContent=nf;
   document.getElementById('failBar').style.width=Math.min(100,nf*100/Math.max(1,ns||TOTAL/4))+'%';
   document.getElementById('failBtn').disabled = nf===0;
-  // topic bars
   document.getElementById('topicBars').innerHTML = TOPICS.map(t=>{
     const tot=topicCount(t), m=masteredInTopic(t), p=pct(m,tot);
-    return `<div class="topicbar"><span class="tn">${esc(t)}</span><div class="bar thin fill-ok"><span style="width:${p}%"></span></div><span class="tv">${m}/${tot}</span></div>`;
+    return `<div class="topicbar"><span class="tn">${TOPIC_BADGE[t]||''} ${esc(t)}</span><div class="bar thin fill-ok"><span style="width:${p}%"></span></div><span class="tv">${m}/${tot}</span></div>`;
   }).join('');
   renderSaveChip();
 }
@@ -612,10 +746,12 @@ function renderSaveChip(){
 }
 function renderTopicChips(){
   const el=document.getElementById('topicChips');
-  el.innerHTML = TOPICS.map(t=>`<button class="chip" data-t="${esc(t)}" aria-pressed="${cfg.topics.has(t)}" onclick="toggleTopic('${esc(t)}',this)">${esc(t)} <span class="muted">(${topicCount(t)})</span></button>`).join('');
+  el.innerHTML = TOPICS.map(t=>`<button class="chip" data-t="${esc(t)}" aria-pressed="${cfg.topics.has(t)}" onclick="toggleTopic('${esc(t)}',this)">${TOPIC_BADGE[t]||''} ${esc(t)} <span class="muted">(${topicCount(t)})</span></button>`).join('');
 }
 function toggleTopic(t,el){ if(cfg.topics.has(t))cfg.topics.delete(t); else cfg.topics.add(t); el.setAttribute('aria-pressed',cfg.topics.has(t)); updatePool(); }
 function setAllTopics(on){ cfg.topics = on? new Set(TOPICS): new Set(); document.querySelectorAll('#topicChips .chip').forEach(c=>c.setAttribute('aria-pressed',on)); updatePool(); }
+function setCoreTopics(){ cfg.topics=new Set(CORE_TOPICS.filter(t=>TOPICS.includes(t)));
+  document.querySelectorAll('#topicChips .chip').forEach(c=>c.setAttribute('aria-pressed',cfg.topics.has(c.dataset.t))); updatePool(); }
 function renderCountOpts(){
   document.getElementById('countOpts').innerHTML = COUNT_PRESETS.map(c=>{
     const lbl = c==='custom'?'Otro…':(c==='todas'?'Todas':c);
@@ -631,10 +767,7 @@ function pickCount(c,el){
   updatePool();
 }
 function onCustom(){ updatePool(); }
-function poolQuestions(){
-  let pool=QUESTIONS.filter(q=>cfg.topics.has(q.t));
-  return pool;
-}
+function poolQuestions(){ return QUESTIONS.filter(q=>cfg.topics.has(q.t)); }
 function updatePool(){
   const pool=poolQuestions(); let n=pool.length;
   let want = cfg.count==='todas'? n : (cfg.count==='custom'? (parseInt(document.getElementById('customCount').value)||0) : cfg.count);
@@ -645,15 +778,24 @@ document.getElementById('modeExam').addEventListener('change',e=>{
   cfg.exam=e.target.checked;
   document.getElementById('modeLbl').textContent = cfg.exam?'Modo Examen':'Modo Estudio';
   document.getElementById('modeDesc').textContent = cfg.exam
-    ? 'Examen: sin pistas, navegación libre, puedes cambiar respuestas; nota al final.'
-    : 'Estudio: corrige al instante y muestra la respuesta correcta.';
+    ? 'Examen: sin pistas, navegación libre, deja en blanco lo que no sepas; al final, nota con penalización real (fallo = −½).'
+    : 'Estudio: corrige al instante, muestra la correcta y el apunte del coach. Las opciones se barajan para que aprendas el contenido, no la posición (en el examen vienen en otro orden).';
 });
 document.getElementById('shuffle').addEventListener('change',e=>cfg.shuffle=e.target.checked);
 
 /* ===== SESSION ===== */
-let S=null; // {qs:[ids], answers:[idx|null], flags:[], mode, cur, topics, failsOnly}
+let S=null; // {qs, answers, flags, orders, mode, cur, topics, failsOnly, ts, bank}
+function optOrderFor(q){
+  const useShuf=document.getElementById('shuffleOpts')?document.getElementById('shuffleOpts').checked:true;
+  const idx=q.opts.map((_,i)=>i);
+  if(!useShuf) return idx;
+  if(q.opts.some(o=>/anterior/i.test(o))) return idx; /* opciones que citan "las anteriores" no se pueden mover */
+  return shuffleArr(idx.slice());
+}
 function buildSession(ids, exam, topicsLabel, failsOnly){
-  S={ qs:ids, answers:ids.map(()=>null), flags:ids.map(()=>false), mode:exam?'examen':'estudio', cur:0, topics:topicsLabel, failsOnly:!!failsOnly, ts:Date.now(), bank:TOTAL };
+  S={ qs:ids, answers:ids.map(()=>null), flags:ids.map(()=>false),
+      orders:ids.map(id=>optOrderFor(BYID[id])),
+      mode:exam?'examen':'estudio', cur:0, topics:topicsLabel, failsOnly:!!failsOnly, ts:Date.now(), bank:TOTAL };
   persistSession();
 }
 function persistSession(){ if(S) jset('ada_session',S); }
@@ -672,6 +814,20 @@ function startTest(){
   buildSession(arr.map(q=>q.id), cfg.exam, label, false);
   enterTest();
 }
+/* Simulacro de examen: 20 al azar de todos los temas (el repertorio ya está ponderado
+   como el examen: muestrear uniformemente reproduce la distribución real) */
+function startExamSim(){
+  let arr=QUESTIONS.slice(); shuffleArr(arr); arr=arr.slice(0,Math.min(20,arr.length));
+  buildSession(arr.map(q=>q.id), true, 'Simulacro examen', false);
+  enterTest();
+}
+/* Top repetidas: las de mayor peso ×N (mayor probabilidad de caer) */
+function startTopRepeated(){
+  let arr=QUESTIONS.slice().sort((a,b)=> (b.w-a.w) || (Math.random()-0.5));
+  arr=arr.slice(0,Math.min(20,arr.length)); shuffleArr(arr);
+  buildSession(arr.map(q=>q.id), false, 'Top repetidas', false);
+  enterTest();
+}
 function startFailsOnly(){
   const ids=Object.keys(prog.fails).filter(k=>prog.fails[k]>0 && BYID[k]);
   if(!ids.length){ toast('No tienes fallos pendientes 🎉'); return; }
@@ -685,33 +841,49 @@ function repeatWrong(){
   const blanks=lastResult.detail.filter(d=>d.tu===null).map(d=>d.id);
   const all=ids.concat(blanks);
   if(!all.length){ toast('¡No hubo fallos!'); return; }
-  buildSession(all, S? S.mode==='examen':false, 'Repaso de fallos', true);
+  buildSession(all, false, 'Repaso de fallos', true);
   enterTest();
 }
 
 function enterTest(){
   show('test'); S.cur=0; if(!S.ts)S.ts=Date.now(); startTimer(); renderQ();
 }
+function orderOf(i){ const q=BYID[S.qs[i]]; let o=(S.orders&&S.orders[i])||null;
+  if(!o || o.length!==q.opts.length) o=q.opts.map((_,k)=>k); return o; }
 function renderQ(){
-  const id=S.qs[S.cur], q=BYID[id];
+  const id=S.qs[S.cur], q=BYID[id], ord=orderOf(S.cur);
   document.getElementById('qProgressTxt').textContent=(S.cur+1)+' / '+S.qs.length;
   document.getElementById('qTopic').textContent=q.t;
   document.getElementById('qBar').style.width=pct(S.cur+1,S.qs.length)+'%';
   document.getElementById('qText').innerHTML=rich(q.q);
+  /* badges: frecuencia, confirmada, dudosa (solo en estudio, para no dar pistas en examen) */
+  let badges='';
+  if(S.mode==='estudio'){
+    if(q.w>1) badges+=`<span class="qb rep">🎯 cae ×${q.w} en el repertorio</span>`;
+    if(q.conf) badges+=`<span class="qb conf">✔ solución confirmada</span>`;
+    if(q.fixed) badges+=`<span class="qb conf">🛠 respuesta corregida por el coach</span>`;
+    if(q.dudosa) badges+=`<span class="qb dud">⚠ solucionario contradictorio</span>`;
+  }
+  document.getElementById('qBadges').innerHTML=badges;
   const fl=document.getElementById('flagBtn'); fl.classList.toggle('on',S.flags[S.cur]);
-  const sel=S.answers[S.cur];
+  const sel=S.answers[S.cur];                     /* índice ORIGINAL */
   const answered = sel!==null;
   const reveal = S.mode==='estudio' && answered;
-  document.getElementById('qOpts').innerHTML=q.opts.map((o,i)=>{
+  document.getElementById('qOpts').innerHTML=ord.map((orig,disp)=>{
     let cls='opt';
-    if(reveal){ if(i===q.ans)cls+=' correct'; else if(i===sel)cls+=' wrong'; }
-    else if(i===sel) cls+=' sel';
-    const mk='ABCDE'[i];
-    return `<div class="${cls}" onclick="choose(${i})"><div class="mk">${mk}</div><div class="otext">${rich(o)}</div></div>`;
+    if(reveal){ if(orig===q.ans)cls+=' correct'; else if(orig===sel)cls+=' wrong'; }
+    else if(orig===sel) cls+=' sel';
+    const mk='ABCDE'[disp];
+    return `<div class="${cls}" onclick="choose(${orig})"><div class="mk">${mk}</div><div class="otext">${rich(q.opts[orig])}</div></div>`;
   }).join('');
   const fb=document.getElementById('qFeedback'); fb.innerHTML='';
-  if(reveal){ const ok=sel===q.ans; fb.innerHTML=`<div class="feedback ${ok?'good':'miss'}">${ok?'✓ ¡Correcto!':'✗ Incorrecto. La respuesta correcta es '+'ABCDE'[q.ans]+'.'} <span style="font-weight:400">(según tu material)</span></div>`; }
-  // nav
+  const co=document.getElementById('qCoach'); co.innerHTML='';
+  if(reveal){
+    const ok=sel===q.ans; const corrLetter='ABCDE'[ord.indexOf(q.ans)];
+    fb.innerHTML=`<div class="feedback ${ok?'good':'miss'}">${ok?'✓ ¡Correcto!':'✗ Incorrecto. La respuesta correcta es '+corrLetter+'.'} <span style="font-weight:400">(según tu material)</span></div>`;
+    if(q.coach) co.innerHTML=`<div class="coach"><b>💡 Coach:</b> ${esc(q.coach)}</div>`;
+    else if(q.dudosa) co.innerHTML=`<div class="coach"><b>💡 Coach:</b> Esta pregunta aparece con soluciones contradictorias en el repertorio: fíate del razonamiento, no de la letra.</div>`;
+  }
   document.getElementById('prevBtn').disabled=S.cur===0;
   const last=S.cur===S.qs.length-1;
   document.getElementById('nextBtn').classList.toggle('hidden',last);
@@ -787,7 +959,10 @@ function updateHud(){
   const flagged=S.flags.filter(Boolean).length;
   let h='';
   if(S.mode==='estudio'){
-    h=`<span class="hchip ok">✓ ${ok} correctas</span><span class="hchip bad">✗ ${bad} fallos</span><span class="hchip">📊 ${acc}% acierto</span><span class="hchip">✍ ${ans}/${S.qs.length}</span>`;
+    const notaLive=(ok+bad)? Math.max(0,(ok-0.5*bad)/(ok+bad)*10).toFixed(1):null;
+    h=`<span class="hchip ok">✓ ${ok}</span><span class="hchip bad">✗ ${bad}</span><span class="hchip">📊 ${acc}%</span>`;
+    if(notaLive!==null) h+=`<span class="hchip gold">nota≈${notaLive.replace('.',',')}</span>`;
+    h+=`<span class="hchip">✍ ${ans}/${S.qs.length}</span>`;
   } else {
     h=`<span class="hchip">✍ ${ans}/${S.qs.length} respondidas</span><span class="hchip">◻ ${blank} en blanco</span>`;
   }
@@ -795,17 +970,20 @@ function updateHud(){
   if(flagged) h+=`<span class="hchip gold">⚑ ${flagged}</span>`;
   el.innerHTML=h;
 }
-function choose(i){
-  if(S.mode==='estudio' && S.answers[S.cur]!==null) return; // lock after answer in study
-  S.answers[S.cur]=i;
+function choose(origIdx){
+  if(S.mode==='estudio' && S.answers[S.cur]!==null) return;
+  if(S.mode==='examen' && S.answers[S.cur]===origIdx){ /* tocar de nuevo = dejar en blanco */
+    S.answers[S.cur]=null; persistSession(); renderQ(); return;
+  }
+  S.answers[S.cur]=origIdx;
   const q=BYID[S.qs[S.cur]];
   prog.seen[q.id]=1;
   if(S.mode==='estudio'){
-    if(i===q.ans){ prog.mastered[q.id]=1; if(prog.fails[q.id]) delete prog.fails[q.id]; }
+    if(origIdx===q.ans){ prog.mastered[q.id]=1; if(prog.fails[q.id]) delete prog.fails[q.id]; }
     else { prog.fails[q.id]=(prog.fails[q.id]||0)+1; }
   }
   saveProgLocal();
-  debouncedPush();           // <- guarda en la nube en cada respuesta
+  debouncedPush();
   persistSession(); renderQ();
 }
 function go(d){ const n=S.cur+d; if(n<0||n>=S.qs.length)return; S.cur=n; persistSession(); renderQ(); }
@@ -822,7 +1000,6 @@ function finishTest(){
   const score=detail.filter(d=>d.tu!==null && d.ok).length;
   const blank=detail.filter(d=>d.tu===null).length;
   const wrong=detail.filter(d=>d.tu!==null && !d.ok).length;
-  // update progress for all (examen counts too)
   detail.forEach(d=>{ prog.seen[d.id]=1;
     if(d.tu!==null){ if(d.ok){ prog.mastered[d.id]=1; if(prog.fails[d.id])delete prog.fails[d.id]; }
       else { prog.fails[d.id]=(prog.fails[d.id]||0)+1; } } });
@@ -839,17 +1016,27 @@ function renderResults(){
   document.getElementById('cOk').textContent=r.score;
   document.getElementById('cBad').textContent=r.wrong;
   document.getElementById('cBlank').textContent=r.blank;
-  // ring
   const ring=document.getElementById('ring'), C=2*Math.PI*50;
   ring.setAttribute('stroke-dasharray',C.toFixed(1));
   ring.setAttribute('stroke-dashoffset',(C*(1-r.pct/100)).toFixed(1));
   ring.setAttribute('stroke', r.pct>=70?'var(--ok)':(r.pct>=45?'var(--gold)':'var(--accent)'));
   document.getElementById('ringPct').textContent=r.pct+'%';
-  // topic bars
+  /* nota con penalización */
+  const raw=r.score-0.5*r.wrong;
+  const nota=Math.max(0, raw/r.total*10);
+  const notaSin=r.score/r.total*10;
+  const el=document.getElementById('notaPen');
+  el.textContent=nota.toFixed(1).replace('.',',');
+  el.style.color = nota>=5?'var(--ok)':(nota>=4?'var(--gold)':'var(--bad)');
+  const perdido=(0.5*r.wrong/r.total*10);
+  document.getElementById('notaDetail').innerHTML =
+    `Sin penalización sería <b>${notaSin.toFixed(1).replace('.',',')}</b>. `+
+    (r.wrong? `Los fallos te han restado <b>${perdido.toFixed(1).replace('.',',')} pts</b>: si dudabas a ciegas, en blanco salía mejor.` : `Cero fallos: penalización nula. 👌`)+
+    (r.blank? ` Dejaste ${r.blank} en blanco.`:'');
   const byT={}; r.detail.forEach(d=>{ byT[d.tema]=byT[d.tema]||{ok:0,n:0}; byT[d.tema].n++; if(d.ok)byT[d.tema].ok++; });
   document.getElementById('resTopicBars').innerHTML=Object.keys(byT).map(t=>{
-    const o=byT[t], p=pct(o.ok,o.n), cls=p>=70?'fill-ok':(p>=45?'fill-acc':'fill-bad');
-    return `<div class="topicbar"><span class="tn">${esc(t)}</span><div class="bar thin ${cls}"><span style="width:${p}%"></span></div><span class="tv">${o.ok}/${o.n}</span></div>`;
+    const o=byT[t], p2=pct(o.ok,o.n), cls=p2>=70?'fill-ok':(p2>=45?'fill-acc':'fill-bad');
+    return `<div class="topicbar"><span class="tn">${esc(t)}</span><div class="bar thin ${cls}"><span style="width:${p2}%"></span></div><span class="tv">${o.ok}/${o.n}</span></div>`;
   }).join('') || '<p class="muted">—</p>';
   revFilter='wrong'; renderReview();
 }
@@ -857,17 +1044,20 @@ let revFilter='wrong';
 function setRevFilter(f){ revFilter=f;
   document.getElementById('revWrongBtn').setAttribute('aria-pressed',f==='wrong');
   document.getElementById('revAllBtn').setAttribute('aria-pressed',f==='all');
-  renderReview(); }
+  renderReview();
+}
 function renderReview(){
   const r=lastResult;
   let list=r.detail; if(revFilter==='wrong') list=list.filter(d=>!d.ok);
   if(!list.length){ document.getElementById('reviewList').innerHTML='<p class="muted">Sin elementos. ¡Todo correcto!</p>'; return; }
   const RL=document.getElementById('reviewList'); RL.innerHTML=list.map(d=>{
+    const qq=BYID[d.id];
     const opts=d.opts.map((o,i)=>{ let c='ro n'; if(i===d.c)c='ro c'; else if(i===d.tu&&i!==d.c)c='ro w';
       const tag=i===d.c?' ✓ correcta':(i===d.tu&&i!==d.c?' ✗ tu respuesta':'');
       return `<div class="${c}"><b>${'ABCDE'[i]}</b> ${rich(o)}<span class="muted">${tag}</span></div>`; }).join('');
-    const blank=d.tu===null?'<div class="ro w"><i>Dejada en blanco</i></div>':'';
-    return `<div class="rev"><div class="rq">${d.n}. ${rich(d.q)}</div>${opts}${blank}</div>`;
+    const blank=d.tu===null?'<div class="ro w"><i>Dejada en blanco (0 pts, sin resta)</i></div>':'';
+    const coach=(qq&&qq.coach&&!d.ok)?`<div class="rev-note">💡 <b>Coach:</b> ${esc(qq.coach)}</div>`:'';
+    return `<div class="rev"><div class="rq">${d.n}. ${rich(d.q)}</div>${opts}${blank}${coach}</div>`;
   }).join(''); mj(RL);
 }
 
@@ -876,11 +1066,10 @@ async function saveAttempt(){
   const st=document.getElementById('saveStatus');
   const r=lastResult;
   const payloadQuestions=r.detail.map(d=>({n:d.n,tema:d.tema,q:d.q,opts:d.opts,tu:d.tu,c:d.c,ok:d.ok}));
-  // always store locally
   const local=jget('ada_attempts_local',[]);
   local.unshift({played_at:new Date().toISOString(),mode:r.mode,topics:r.topics,score:r.score,total:r.total,blank:r.blank,pct:r.pct,questions:payloadQuestions});
   jset('ada_attempts_local',local.slice(0,200));
-  if(!ONLINE()){ st.innerHTML='💾 Guardado en este dispositivo. <span class="muted">(configura Supabase para sincronizar entre móvil y PC)</span>'; return; }
+  if(!ONLINE()){ st.innerHTML='💾 Guardado en este dispositivo.'; return; }
   st.textContent='Guardando…';
   const name=await ensurePlayer();
   if(!name){ st.innerHTML='💾 Guardado local (no diste nombre).'; return; }
@@ -896,7 +1085,6 @@ async function saveAttempt(){
 /* ===== HISTORY MODAL ===== */
 async function openHistory(){
   document.getElementById('histModal').classList.add('show');
-  // Si no hay nombre (visitante), abre en Ranking; si ya jugaste, en tu Historial
   histTab(player ? 'hist' : 'lb');
 }
 function closeHistory(){ document.getElementById('histModal').classList.remove('show'); }
@@ -952,6 +1140,10 @@ async function loadLeaderboard(){
     data.map(r=>`<div class="lb-row"><span>${esc(r.player)}</span><b>${r.best_pct}%</b><b>${r.avg_pct}%</b><b>${r.tests}</b></div>`).join('');
 }
 
+/* ===== CHULETA ===== */
+function openChuleta(){ document.getElementById('chuletaModal').classList.add('show'); }
+function closeChuleta(){ document.getElementById('chuletaModal').classList.remove('show'); }
+
 /* ===== RESUME ===== */
 function checkResume(){
   const s=jget('ada_session',null);
@@ -961,7 +1153,11 @@ function checkResume(){
     document.getElementById('resumeBanner').classList.remove('hidden');
   } else if(s){ clearSession(); }
 }
-function resumeSession(){ S=jget('ada_session',null); if(S && S.bank===TOTAL && S.qs.every(id=>BYID[id])){ document.getElementById('resumeBanner').classList.add('hidden'); enterTest(); } else { clearSession(); document.getElementById('resumeBanner').classList.add('hidden'); toast('La sesión guardada era de una versión anterior; empieza una nueva.'); } }
+function resumeSession(){ S=jget('ada_session',null);
+  if(S && S.bank===TOTAL && S.qs.every(id=>BYID[id])){
+    if(!S.orders) S.orders=S.qs.map(id=>BYID[id].opts.map((_,k)=>k));
+    document.getElementById('resumeBanner').classList.add('hidden'); enterTest();
+  } else { clearSession(); document.getElementById('resumeBanner').classList.add('hidden'); toast('La sesión guardada era de una versión anterior; empieza una nueva.'); } }
 function discardSession(){ clearSession(); document.getElementById('resumeBanner').classList.add('hidden'); }
 
 /* ===== NAV ===== */
@@ -977,15 +1173,19 @@ async function boot(){
     QUESTIONS=buildQuestions(text);
     if(!QUESTIONS.length) throw new Error('No encontré preguntas con el formato esperado');
     const counts={}; QUESTIONS.forEach(q=>counts[q.t]=(counts[q.t]||0)+1);
-    TOPICS=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+    TOPICS=Object.keys(counts).sort((a,b)=>{
+      const ia=TOPIC_PRIORITY.indexOf(a), ib=TOPIC_PRIORITY.indexOf(b);
+      if(ia!==-1||ib!==-1) return (ia===-1?99:ia)-(ib===-1?99:ib);
+      return counts[b]-counts[a];
+    });
     BYID={}; QUESTIONS.forEach(q=>BYID[q.id]=q); TOTAL=QUESTIONS.length;
+    pruneProg();
     cfg.topics=new Set(TOPICS);
-    document.getElementById('subline').textContent=TOTAL+' preguntas · leídas de '+TXT_FILE+' · tus fallos quedan guardados';
-    document.getElementById('masteredTxt').textContent='0 / '+TOTAL;
-    document.getElementById('seenTxt').textContent='0 / '+TOTAL;
+    const nrep=QUESTIONS.filter(q=>q.w>1).length;
+    document.getElementById('subline').textContent=TOTAL+' preguntas únicas (de '+REPERTOIRE+' del repertorio) · '+nrep+' marcadas 🎯 por repetirse · fallo = −½ acierto';
     renderTopicChips(); renderCountOpts(); renderHome(); updatePool(); checkResume(); renderSaveChip();
     loadNotes();
-    if(ONLINE()){ ensureSupaPlayer(); if(player) pullProgress(); /* visitantes: no forzamos modal de nombre; el chip "👤 pon tu nombre" ya invita */ }
+    if(ONLINE()){ ensureSupaPlayer(); if(player) pullProgress(); }
     document.addEventListener('visibilitychange',()=>{ if(!document.hidden && ONLINE() && player) pullProgress(); });
     window.addEventListener('focus',()=>{ if(ONLINE() && player) pullProgress(); });
   }catch(e){
